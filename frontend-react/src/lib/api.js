@@ -155,3 +155,16 @@ export const getDevSimStats    = ()        => devRequest('GET',    '/api/dev/sim
 export const getDevSimRecent   = ()        => devRequest('GET',    '/api/dev/simulations/recent');
 export const getDevSimDaily    = ()        => devRequest('GET',    '/api/dev/simulations/daily');
 export const getDevCommunity   = ()        => devRequest('GET',    '/api/dev/community/stats');
+
+export const getChunkEvalStats = ()    => devRequest('GET',  '/api/dev/chunks/stats');
+export const getChunkWorst     = ()    => devRequest('GET',  '/api/dev/chunks/worst');
+export const getChunkBest      = ()    => devRequest('GET',  '/api/dev/chunks/best');
+export const getChunkAll       = ()    => devRequest('GET',  '/api/dev/chunks/all');
+export const getChunksByUser   = ()    => devRequest('GET',  '/api/dev/chunks/by-user');
+export const evalOneChunk      = (id)  => devRequest('POST', `/api/dev/chunks/${id}/eval`);
+export const evalAllPending    = ()    => devRequest('POST', '/api/dev/chunks/eval-all');
+
+export const getSimEvalStats   = ()    => devRequest('GET',  '/api/dev/simulations/eval/stats');
+export const getSimEvalRecent  = ()    => devRequest('GET',  '/api/dev/simulations/eval/recent');
+export const getEnhanceStats   = ()    => devRequest('GET',  '/api/dev/enhance/stats');
+export const getEnhanceLogs    = ()    => devRequest('GET',  '/api/dev/enhance/logs');
