@@ -42,6 +42,8 @@ class EnhanceRequest(BaseModel):
 
 class EnhanceResponse(BaseModel):
     enhanced: str
+    flagged: bool = False
+    hallucinations: List[str] = []
 
 
 class UploadResponse(BaseModel):

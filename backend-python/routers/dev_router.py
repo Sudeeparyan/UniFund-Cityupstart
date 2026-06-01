@@ -1,10 +1,12 @@
+import json
 import uuid
 from datetime import datetime, timezone, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 
 from db import get_db
 from auth import get_dev_user, create_dev_token, validate_dev_credentials
+from services.eval_service import score_chunk_background
 from models.dev import (
     DevLoginRequest, DevLoginResponse,
     LLMCallOut, LLMStatsOut, HourlyTokens,
@@ -12,6 +14,8 @@ from models.dev import (
     SimStatsOut, SimLogOut, DailyCount,
     CommunityStatsOut, FeatureFlagsOut, FeatureFlagsIn,
     BroadcastIn, ActionResponse,
+    ChunkEvalStats, ChunkEvalOut, UserChunkSummary,
+    SimEvalOut, SimEvalStats, EnhanceStats, EnhanceLogOut,
 )
 
 router = APIRouter()
@@ -366,3 +370,226 @@ async def community_stats(_=Depends(get_dev_user), db=Depends(get_db)):
         zero_engagement_posts=zero_engagement,
         top_posts=top_posts,
     )
+
+
+# ── Chunk Eval ────────────────────────────────────────────────────────────────
+
+def _parse_flags(raw) -> list:
+    if not raw:
+        return []
+    try:
+        return json.loads(raw) if isinstance(raw, str) else raw
+    except Exception:
+        return []
+
+
+@router.get("/chunks/stats", response_model=ChunkEvalStats)
+async def chunk_eval_stats(_=Depends(get_dev_user), db=Depends(get_db)):
+    cur = await db.execute("SELECT COUNT(*) FROM knowledge_chunks")
+    total = (await cur.fetchone())[0]
+
+    cur = await db.execute("SELECT COUNT(*) FROM knowledge_chunks WHERE eval_status='done'")
+    evaluated = (await cur.fetchone())[0]
+
+    cur = await db.execute("SELECT COUNT(*) FROM knowledge_chunks WHERE eval_status='pending' OR eval_score IS NULL")
+    pending = (await cur.fetchone())[0]
+
+    cur = await db.execute("SELECT COUNT(*) FROM knowledge_chunks WHERE eval_score IS NOT NULL AND eval_score <= 3")
+    below = (await cur.fetchone())[0]
+
+    cur = await db.execute("SELECT AVG(eval_score) FROM knowledge_chunks WHERE eval_score IS NOT NULL")
+    avg = round((await cur.fetchone())[0] or 0, 1)
+
+    dist = {}
+    for label, lo, hi in [("1-2",1,2),("3-4",3,4),("5-6",5,6),("7-8",7,8),("9-10",9,10)]:
+        cur = await db.execute(
+            "SELECT COUNT(*) FROM knowledge_chunks WHERE eval_score >= ? AND eval_score <= ?", (lo, hi)
+        )
+        dist[label] = (await cur.fetchone())[0]
+
+    return ChunkEvalStats(
+        avg_score=avg, total_chunks=total, total_evaluated=evaluated,
+        total_pending=pending, below_threshold=below, distribution=dist,
+    )
+
+
+@router.get("/chunks/worst", response_model=list[ChunkEvalOut])
+async def chunk_worst(_=Depends(get_dev_user), db=Depends(get_db)):
+    cur = await db.execute(
+        "SELECT kc.id, kc.user_id, u.name as user_name, kc.content, kc.category,"
+        " kc.eval_score, kc.eval_reason, kc.eval_flags, kc.eval_status,"
+        " kc.eval_raw_response, kc.eval_user_message,"
+        " kc.eval_tokens_in, kc.eval_tokens_out, kc.eval_duration_ms, kc.created_at"
+        " FROM knowledge_chunks kc LEFT JOIN users u ON u.id=kc.user_id"
+        " WHERE kc.eval_score IS NOT NULL ORDER BY kc.eval_score ASC LIMIT 20"
+    )
+    rows = await cur.fetchall()
+    return [ChunkEvalOut(**{**dict(r), "eval_flags": _parse_flags(r["eval_flags"])}) for r in rows]
+
+
+@router.get("/chunks/best", response_model=list[ChunkEvalOut])
+async def chunk_best(_=Depends(get_dev_user), db=Depends(get_db)):
+    cur = await db.execute(
+        "SELECT kc.id, kc.user_id, u.name as user_name, kc.content, kc.category,"
+        " kc.eval_score, kc.eval_reason, kc.eval_flags, kc.eval_status,"
+        " kc.eval_raw_response, kc.eval_user_message,"
+        " kc.eval_tokens_in, kc.eval_tokens_out, kc.eval_duration_ms, kc.created_at"
+        " FROM knowledge_chunks kc LEFT JOIN users u ON u.id=kc.user_id"
+        " WHERE kc.eval_score IS NOT NULL ORDER BY kc.eval_score DESC LIMIT 20"
+    )
+    rows = await cur.fetchall()
+    return [ChunkEvalOut(**{**dict(r), "eval_flags": _parse_flags(r["eval_flags"])}) for r in rows]
+
+
+@router.get("/chunks/all", response_model=list[ChunkEvalOut])
+async def chunk_all(_=Depends(get_dev_user), db=Depends(get_db)):
+    cur = await db.execute(
+        "SELECT kc.id, kc.user_id, u.name as user_name, kc.content, kc.category,"
+        " kc.eval_score, kc.eval_reason, kc.eval_flags, kc.eval_status,"
+        " kc.eval_raw_response, kc.eval_user_message,"
+        " kc.eval_tokens_in, kc.eval_tokens_out, kc.eval_duration_ms, kc.created_at"
+        " FROM knowledge_chunks kc LEFT JOIN users u ON u.id=kc.user_id"
+        " WHERE kc.eval_status='done' ORDER BY kc.created_at DESC LIMIT 50"
+    )
+    rows = await cur.fetchall()
+    return [ChunkEvalOut(**{**dict(r), "eval_flags": _parse_flags(r["eval_flags"])}) for r in rows]
+
+
+@router.get("/chunks/by-user", response_model=list[UserChunkSummary])
+async def chunks_by_user(_=Depends(get_dev_user), db=Depends(get_db)):
+    cur = await db.execute("SELECT id, name FROM users ORDER BY created_at DESC")
+    users = await cur.fetchall()
+    result = []
+    for u in users:
+        uid = u["id"]
+        c1 = await db.execute("SELECT COUNT(*) FROM knowledge_chunks WHERE user_id=?", (uid,))
+        total = (await c1.fetchone())[0]
+        if total == 0:
+            continue
+        c2 = await db.execute(
+            "SELECT COUNT(*), AVG(eval_score), SUM(CASE WHEN eval_score<=3 THEN 1 ELSE 0 END)"
+            " FROM knowledge_chunks WHERE user_id=? AND eval_score IS NOT NULL", (uid,)
+        )
+        row = await c2.fetchone()
+        evaluated = row[0] or 0
+        avg = round(row[1] or 0, 1)
+        below = row[2] or 0
+        result.append(UserChunkSummary(
+            user_id=uid, user_name=u["name"],
+            total_chunks=total, evaluated=evaluated,
+            avg_score=avg, below_threshold=below,
+        ))
+    return result
+
+
+@router.post("/chunks/{chunk_id}/eval", response_model=ActionResponse)
+async def eval_one_chunk(
+    chunk_id: str,
+    background_tasks: BackgroundTasks,
+    _=Depends(get_dev_user),
+    db=Depends(get_db),
+):
+    cur = await db.execute(
+        "SELECT kc.id, kc.user_id, u.name, kc.content, kc.category"
+        " FROM knowledge_chunks kc LEFT JOIN users u ON u.id=kc.user_id WHERE kc.id=?",
+        (chunk_id,),
+    )
+    row = await cur.fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="Chunk not found")
+    await db.execute("UPDATE knowledge_chunks SET eval_status='pending' WHERE id=?", (chunk_id,))
+    await db.commit()
+    background_tasks.add_task(
+        score_chunk_background, row["id"], row["user_id"], row["name"] or "Unknown",
+        row["content"], row["category"],
+    )
+    return ActionResponse(ok=True, message=f"Eval queued for chunk {chunk_id}")
+
+
+@router.post("/chunks/eval-all", response_model=ActionResponse)
+async def eval_all_pending(
+    background_tasks: BackgroundTasks,
+    _=Depends(get_dev_user),
+    db=Depends(get_db),
+):
+    cur = await db.execute(
+        "SELECT kc.id, kc.user_id, u.name, kc.content, kc.category"
+        " FROM knowledge_chunks kc LEFT JOIN users u ON u.id=kc.user_id"
+        " WHERE kc.eval_status='pending' OR kc.eval_score IS NULL LIMIT 50"
+    )
+    rows = await cur.fetchall()
+    for r in rows:
+        await db.execute("UPDATE knowledge_chunks SET eval_status='pending' WHERE id=?", (r["id"],))
+        background_tasks.add_task(
+            score_chunk_background, r["id"], r["user_id"], r["name"] or "Unknown",
+            r["content"], r["category"],
+        )
+    await db.commit()
+    return ActionResponse(ok=True, message=f"Queued {len(rows)} chunks for evaluation")
+
+
+# ── Simulation Eval (Pipeline 2) ──────────────────────────────────────────────
+
+@router.get("/simulations/eval/stats", response_model=SimEvalStats)
+async def sim_eval_stats(_=Depends(get_dev_user), db=Depends(get_db)):
+    cur = await db.execute("SELECT COUNT(*) FROM simulation_evals")
+    total = (await cur.fetchone())[0]
+    if total == 0:
+        return SimEvalStats(total_evals=0, avg_personalisation=0, avg_groundedness=0,
+                            avg_overall=0, hallucination_rate=0)
+    cur = await db.execute(
+        "SELECT AVG(personalisation), AVG(groundedness), AVG(overall),"
+        " SUM(CASE WHEN json_array_length(hallucinations)>0 THEN 1 ELSE 0 END)"
+        " FROM simulation_evals"
+    )
+    row = await cur.fetchone()
+    return SimEvalStats(
+        total_evals=total,
+        avg_personalisation=round(row[0] or 0, 1),
+        avg_groundedness=round(row[1] or 0, 1),
+        avg_overall=round(row[2] or 0, 1),
+        hallucination_rate=round((row[3] or 0) / total * 100, 1),
+    )
+
+
+@router.get("/simulations/eval/recent", response_model=list[SimEvalOut])
+async def sim_eval_recent(_=Depends(get_dev_user), db=Depends(get_db)):
+    cur = await db.execute(
+        "SELECT id, user_name, personalisation, groundedness, hallucinations, overall,"
+        " raw_response, chunks_context, simulation_output,"
+        " user_prompt, tokens_in, tokens_out, duration_ms, created_at"
+        " FROM simulation_evals ORDER BY created_at DESC LIMIT 30"
+    )
+    rows = await cur.fetchall()
+    return [SimEvalOut(**{**dict(r), "hallucinations": _parse_flags(r["hallucinations"])}) for r in rows]
+
+
+# ── Enhance Stats (Pipeline 3) ────────────────────────────────────────────────
+
+@router.get("/enhance/stats", response_model=EnhanceStats)
+async def enhance_stats(_=Depends(get_dev_user), db=Depends(get_db)):
+    cur = await db.execute("SELECT COUNT(*), SUM(flagged) FROM enhance_logs")
+    row = await cur.fetchone()
+    total = row[0] or 0
+    flagged = row[1] or 0
+    return EnhanceStats(
+        total_enhancements=total,
+        total_flagged=flagged,
+        hallucination_rate=round((flagged / total * 100) if total else 0, 1),
+    )
+
+
+@router.get("/enhance/logs", response_model=list[EnhanceLogOut])
+async def enhance_logs(_=Depends(get_dev_user), db=Depends(get_db)):
+    cur = await db.execute(
+        "SELECT el.id, u.name as user_name, el.original, el.enhanced_text,"
+        " el.flagged, el.hallucinations, el.raw_guard_response,"
+        " el.user_prompt, el.tokens_in, el.tokens_out, el.created_at"
+        " FROM enhance_logs el LEFT JOIN users u ON u.id=el.user_id"
+        " ORDER BY el.created_at DESC LIMIT 40"
+    )
+    rows = await cur.fetchall()
+    return [
+        EnhanceLogOut(**{**dict(r), "hallucinations": _parse_flags(r["hallucinations"])})
+        for r in rows
+    ]

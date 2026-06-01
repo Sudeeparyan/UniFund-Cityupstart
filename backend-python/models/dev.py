@@ -109,3 +109,84 @@ class BroadcastIn(BaseModel):
 class ActionResponse(BaseModel):
     ok: bool
     message: str
+
+
+class ChunkEvalStats(BaseModel):
+    avg_score: float
+    total_chunks: int
+    total_evaluated: int
+    total_pending: int
+    below_threshold: int
+    distribution: dict
+
+
+class ChunkEvalOut(BaseModel):
+    id: str
+    user_id: str
+    user_name: str
+    content: str
+    category: str
+    eval_score: Optional[int]
+    eval_reason: Optional[str]
+    eval_flags: list
+    eval_status: str
+    eval_raw_response: Optional[str]
+    eval_user_message: Optional[str]
+    eval_tokens_in: Optional[int] = None
+    eval_tokens_out: Optional[int] = None
+    eval_duration_ms: Optional[int] = None
+    created_at: str
+
+
+class UserChunkSummary(BaseModel):
+    user_id: str
+    user_name: str
+    total_chunks: int
+    evaluated: int
+    avg_score: float
+    below_threshold: int
+
+
+class SimEvalOut(BaseModel):
+    id: str
+    user_name: str
+    personalisation: int
+    groundedness: int
+    hallucinations: list
+    overall: int
+    raw_response: Optional[str]
+    chunks_context: Optional[str]
+    simulation_output: Optional[str]
+    user_prompt: Optional[str] = None
+    tokens_in: Optional[int] = None
+    tokens_out: Optional[int] = None
+    duration_ms: Optional[int] = None
+    created_at: str
+
+
+class EnhanceLogOut(BaseModel):
+    id: str
+    user_name: Optional[str]
+    original: str
+    enhanced_text: Optional[str]
+    flagged: int
+    hallucinations: list
+    raw_guard_response: Optional[str]
+    user_prompt: Optional[str] = None
+    tokens_in: Optional[int] = None
+    tokens_out: Optional[int] = None
+    created_at: str
+
+
+class SimEvalStats(BaseModel):
+    total_evals: int
+    avg_personalisation: float
+    avg_groundedness: float
+    avg_overall: float
+    hallucination_rate: float
+
+
+class EnhanceStats(BaseModel):
+    total_enhancements: int
+    total_flagged: int
+    hallucination_rate: float

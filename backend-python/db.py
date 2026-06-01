@@ -97,6 +97,27 @@ CREATE TABLE IF NOT EXISTS broadcast_messages (
     content TEXT NOT NULL,
     created_at TEXT DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS simulation_evals (
+    id                TEXT PRIMARY KEY,
+    simulation_log_id TEXT,
+    user_id           TEXT,
+    user_name         TEXT,
+    personalisation   INTEGER,
+    groundedness      INTEGER,
+    hallucinations    TEXT DEFAULT '[]',
+    overall           INTEGER,
+    created_at        TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS enhance_logs (
+    id            TEXT PRIMARY KEY,
+    user_id       TEXT,
+    original      TEXT,
+    flagged       INTEGER DEFAULT 0,
+    hallucinations TEXT DEFAULT '[]',
+    created_at    TEXT DEFAULT (datetime('now'))
+);
 """
 
 
@@ -116,6 +137,27 @@ async def create_tables():
         for sql in [
             "ALTER TABLE users ADD COLUMN suspended INTEGER DEFAULT 0",
             "ALTER TABLE users ADD COLUMN last_active TEXT",
+            "ALTER TABLE knowledge_chunks ADD COLUMN eval_score INTEGER",
+            "ALTER TABLE knowledge_chunks ADD COLUMN eval_reason TEXT",
+            "ALTER TABLE knowledge_chunks ADD COLUMN eval_flags TEXT DEFAULT '[]'",
+            "ALTER TABLE knowledge_chunks ADD COLUMN eval_status TEXT DEFAULT 'pending'",
+            "ALTER TABLE knowledge_chunks ADD COLUMN eval_raw_response TEXT",
+            "ALTER TABLE knowledge_chunks ADD COLUMN eval_user_message TEXT",
+            "ALTER TABLE simulation_evals ADD COLUMN raw_response TEXT",
+            "ALTER TABLE simulation_evals ADD COLUMN chunks_context TEXT",
+            "ALTER TABLE simulation_evals ADD COLUMN simulation_output TEXT",
+            "ALTER TABLE enhance_logs ADD COLUMN enhanced_text TEXT",
+            "ALTER TABLE enhance_logs ADD COLUMN raw_guard_response TEXT",
+            "ALTER TABLE knowledge_chunks ADD COLUMN eval_tokens_in INTEGER DEFAULT 0",
+            "ALTER TABLE knowledge_chunks ADD COLUMN eval_tokens_out INTEGER DEFAULT 0",
+            "ALTER TABLE knowledge_chunks ADD COLUMN eval_duration_ms INTEGER DEFAULT 0",
+            "ALTER TABLE simulation_evals ADD COLUMN tokens_in INTEGER DEFAULT 0",
+            "ALTER TABLE simulation_evals ADD COLUMN tokens_out INTEGER DEFAULT 0",
+            "ALTER TABLE simulation_evals ADD COLUMN duration_ms INTEGER DEFAULT 0",
+            "ALTER TABLE simulation_evals ADD COLUMN user_prompt TEXT",
+            "ALTER TABLE enhance_logs ADD COLUMN tokens_in INTEGER DEFAULT 0",
+            "ALTER TABLE enhance_logs ADD COLUMN tokens_out INTEGER DEFAULT 0",
+            "ALTER TABLE enhance_logs ADD COLUMN user_prompt TEXT",
         ]:
             try:
                 await db.execute(sql)
