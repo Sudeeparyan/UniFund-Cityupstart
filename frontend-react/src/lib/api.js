@@ -100,3 +100,58 @@ export const uploadFile = async (file) => {
 
 export const saveKnowledge = (content, category) =>
   request('POST', '/api/chatbot/knowledge', { content, category });
+
+// ── Developer (unauthenticated login, then dev-token requests) ────────────────
+function getDevToken() {
+  return localStorage.getItem('unimind_dev_token');
+}
+
+function devHeaders() {
+  const token = getDevToken();
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+}
+
+async function devRequest(method, path, body) {
+  const res = await fetch(BASE + path, {
+    method,
+    headers: devHeaders(),
+    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: 'Request failed' }));
+    throw new Error(err.detail || 'Request failed');
+  }
+  return res.json();
+}
+
+export async function devLogin(email, password) {
+  const res = await fetch(`${BASE}/api/dev/auth`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: 'Invalid credentials' }));
+    throw new Error(err.detail || 'Invalid credentials');
+  }
+  return res.json();
+}
+
+export const getDevLLMStats    = ()        => devRequest('GET',    '/api/dev/llm/stats');
+export const getDevLLMRecent   = ()        => devRequest('GET',    '/api/dev/llm/recent');
+export const getDevLLMHourly   = ()        => devRequest('GET',    '/api/dev/llm/hourly');
+export const getDevFunnel      = ()        => devRequest('GET',    '/api/dev/funnel');
+export const getDevUsers       = ()        => devRequest('GET',    '/api/dev/users');
+export const clearDevUser      = (id)      => devRequest('POST',   `/api/dev/users/${id}/clear`);
+export const suspendDevUser    = (id)      => devRequest('POST',   `/api/dev/users/${id}/suspend`);
+export const deleteDevPost     = (id)      => devRequest('DELETE', `/api/dev/posts/${id}`);
+export const broadcastMessage  = (content) => devRequest('POST',   '/api/dev/broadcast', { content });
+export const getDevFlags       = ()        => devRequest('GET',    '/api/dev/flags');
+export const updateDevFlags    = (flags)   => devRequest('POST',   '/api/dev/flags', flags);
+export const getDevSimStats    = ()        => devRequest('GET',    '/api/dev/simulations/stats');
+export const getDevSimRecent   = ()        => devRequest('GET',    '/api/dev/simulations/recent');
+export const getDevSimDaily    = ()        => devRequest('GET',    '/api/dev/simulations/daily');
+export const getDevCommunity   = ()        => devRequest('GET',    '/api/dev/community/stats');

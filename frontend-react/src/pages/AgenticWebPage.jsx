@@ -17,7 +17,7 @@ function WebSceneHost({ onReady }) {
 }
 
 // ---------- Top brand bar ----------
-function TopBar({ phase, simRunning, onCommunity, onChatbot, onRunway }) {
+function TopBar({ phase, simRunning, onCommunity, onChatbot, onRunway, onDeveloper }) {
   return (
     <div className="absolute top-0 inset-x-0 z-30 px-10 pt-7 flex items-center justify-between pointer-events-none">
       <div className="flex items-center gap-3">
@@ -37,6 +37,20 @@ function TopBar({ phase, simRunning, onCommunity, onChatbot, onRunway }) {
             {`RUNNING SIMULATION · PHASE 0${phase}/04`}
           </span>
         )}
+        <motion.button
+          onClick={onDeveloper}
+          whileHover={{ scale: 1.06 }}
+          whileTap={{ scale: 0.96 }}
+          className="flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] tracking-[0.22em] uppercase transition-all"
+          style={{
+            background: 'linear-gradient(135deg, rgba(0,255,148,0.08), rgba(0,209,255,0.12))',
+            border: '1px solid rgba(0,255,148,0.28)',
+            color: 'rgba(255,255,255,0.85)',
+          }}
+        >
+          <span style={{ fontSize: 12 }}>⬡</span>
+          <span>Developer</span>
+        </motion.button>
         <motion.button
           onClick={onRunway}
           whileHover={{ scale: 1.06 }}
@@ -1140,7 +1154,7 @@ function DustOverlay() {
 }
 
 // ---------- Main ----------
-export default function AgenticWebPage({ userName = '', onNavigateCommunity, onNavigateChatbot, onNavigateTimeline, onNavigateRunway }) {
+export default function AgenticWebPage({ userName = '', onNavigateCommunity, onNavigateChatbot, onNavigateTimeline, onNavigateRunway, onNavigateDeveloper }) {
   const [scene, setScene] = useState(null);
   const [timeframe, setTimeframe] = useState('all');
   const [lbOpen, setLbOpen] = useState(false);
@@ -1300,7 +1314,7 @@ export default function AgenticWebPage({ userName = '', onNavigateCommunity, onN
       <WebSceneHost onReady={setScene} />
       <DustOverlay />
 
-      <TopBar phase={phase} simRunning={simRunning} onCommunity={onNavigateCommunity} onChatbot={onNavigateChatbot} onRunway={onNavigateRunway} />
+      <TopBar phase={phase} simRunning={simRunning} onCommunity={onNavigateCommunity} onChatbot={onNavigateChatbot} onRunway={onNavigateRunway} onDeveloper={onNavigateDeveloper} />
 
       <CoreLabel scenePos={coreScreen} dim={coreLabelDim} hidden={coreLabelHidden} />
       <CoreHover hovered={coreHovered && !simRunning} scenePos={coreScreen} mousePos={mousePos} />

@@ -106,7 +106,16 @@ async def send_message(
     messages.append({"role": "user", "content": payload.content})
 
     # LLM response
-    assistant_reply = await chat_complete(messages, temperature=0.8)
+    llm_result = await chat_complete(messages, temperature=0.8, return_usage=True)
+    assistant_reply = llm_result["content"]
+    now_iso = datetime.now(timezone.utc).isoformat()
+    await db.execute(
+        "INSERT INTO llm_logs (id,user_id,user_name,call_type,tokens_in,tokens_out,duration_ms,status,created_at)"
+        " VALUES (?,?,?,?,?,?,?,?,?)",
+        (str(uuid.uuid4()), user_id, user_name, "chatbot",
+         llm_result["tokens_in"], llm_result["tokens_out"], llm_result["duration_ms"], "llm", now_iso),
+    )
+    await db.execute("UPDATE users SET last_active=? WHERE id=?", (now_iso, user_id))
 
     # Save assistant response
     asst_id, asst_created_at = await _save_message(db, user_id, "assistant", assistant_reply)

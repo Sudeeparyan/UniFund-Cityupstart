@@ -1,7 +1,6 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import LoginPage from './pages/LoginPage';
-import SignupPage from './pages/SignupPage';
+import DeveloperLoginPage from './pages/DeveloperLoginPage';
 import { getMe, saveOnboarding } from './lib/api';
 
 const OnboardingPage  = lazy(() => import('./pages/OnboardingPage'));
@@ -10,6 +9,7 @@ const AgenticWebPage  = lazy(() => import('./pages/AgenticWebPage'));
 const CommunityPage   = lazy(() => import('./pages/CommunityPage'));
 const TimelinePage    = lazy(() => import('./pages/TimelinePage'));
 const RunwayPage      = lazy(() => import('./pages/RunwayPage'));
+const DeveloperPage   = lazy(() => import('./pages/DeveloperPage'));
 
 function PageLoader() {
   return (
@@ -84,9 +84,9 @@ function TransitionBridge({ phase }) {
 }
 
 export default function App() {
-  // page: 'login' | 'signup' | 'chatbot' | 'onboarding' | 'transitioning' | 'agentic' | 'community' | 'timeline' | 'runway'
-  // Auth skipped — start directly at onboarding
-  const [page, setPage] = useState('onboarding');
+  // page: 'onboarding' | 'transitioning' | 'chatbot' | 'agentic' | 'community' | 'timeline' | 'runway' | 'developer' | 'developer-login'
+  const isDeveloperRoute = window.location.pathname === '/developer';
+  const [page, setPage] = useState(isDeveloperRoute ? 'developer-login' : 'onboarding');
   const [bridgePhase, setBridgePhase] = useState('idle');
   const [isExiting, setIsExiting] = useState(false);
   const [userName, setUserName] = useState('USER');
@@ -111,6 +111,10 @@ export default function App() {
     setUserName(user.name.toUpperCase());
     setChatbotCompleteTarget('onboarding');
     setPage('chatbot');
+  }
+
+  function handleSkipAuth() {
+    setPage('onboarding');
   }
 
   async function handleEnter(answers) {
@@ -147,6 +151,11 @@ export default function App() {
           </motion.div>
         )}
         */}
+        {page === 'developer-login' && (
+          <motion.div key="developer-login" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.4 }} style={{ position: 'absolute', inset: 0 }}>
+            <DeveloperLoginPage onSuccess={() => setPage('developer')} />
+          </motion.div>
+        )}
 
         {page === 'chatbot' && (
           <motion.div
@@ -197,6 +206,7 @@ export default function App() {
                 onNavigateCommunity={() => setPage('community')}
                 onNavigateChatbot={() => setPage('chatbot')}
                 onNavigateRunway={() => setPage('runway')}
+                onNavigateDeveloper={() => setPage('developer')}
                 onNavigateTimeline={(data, kCount) => {
                   setSimulationData(data || null);
                   setSimulationKnowledgeCount(kCount ?? null);
@@ -264,6 +274,21 @@ export default function App() {
                 onBack={() => setPage('agentic')}
                 onHome={() => setPage('agentic')}
               />
+            </Suspense>
+          </motion.div>
+        )}
+
+        {page === 'developer' && (
+          <motion.div
+            key="developer"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.5 }}
+            style={{ position: 'absolute', inset: 0 }}
+          >
+            <Suspense fallback={<PageLoader />}>
+              <DeveloperPage onBack={() => setPage('agentic')} />
             </Suspense>
           </motion.div>
         )}

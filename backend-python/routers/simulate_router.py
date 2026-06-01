@@ -1,4 +1,6 @@
 import json
+import uuid
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends
 
@@ -78,9 +80,10 @@ async def run_simulation(
         "fear": current_user.get("fear") or "uncertainty",
     }
 
-    result_text = await simulate_life(user_profile, onboarding)
+    result_text, usage = await simulate_life(user_profile, onboarding)
 
     # Parse structured JSON from LLM; fall back to static template if malformed
+    output_type = "llm"
     try:
         raw = result_text.strip()
         # Strip markdown code fences if present
@@ -99,5 +102,26 @@ async def run_simulation(
             raise ValueError("missing paths")
     except Exception:
         simulation = _FALLBACK
+        output_type = "fallback"
+
+    now = datetime.now(timezone.utc).isoformat()
+    user_name = current_user.get("name", "Unknown")
+
+    # Log to llm_logs and simulation_logs
+    await db.execute(
+        "INSERT INTO llm_logs (id,user_id,user_name,call_type,tokens_in,tokens_out,duration_ms,status,created_at)"
+        " VALUES (?,?,?,?,?,?,?,?,?)",
+        (str(uuid.uuid4()), current_user["id"], user_name, "simulation",
+         usage["tokens_in"], usage["tokens_out"], usage["duration_ms"], output_type, now),
+    )
+    await db.execute(
+        "INSERT INTO simulation_logs (id,user_id,user_name,chunks_used,duration_ms,output_type,created_at)"
+        " VALUES (?,?,?,?,?,?,?)",
+        (str(uuid.uuid4()), current_user["id"], user_name,
+         len(rows), usage["duration_ms"], output_type, now),
+    )
+    # Update user last_active
+    await db.execute("UPDATE users SET last_active=? WHERE id=?", (now, current_user["id"]))
+    await db.commit()
 
     return {"simulation": simulation, "knowledge_count": len(rows)}

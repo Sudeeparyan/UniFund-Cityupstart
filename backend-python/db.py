@@ -63,6 +63,40 @@ CREATE TABLE IF NOT EXISTS achievements (
     badge_key TEXT NOT NULL,
     earned_at TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS llm_logs (
+    id TEXT PRIMARY KEY,
+    user_id TEXT,
+    user_name TEXT,
+    call_type TEXT NOT NULL,
+    tokens_in INTEGER DEFAULT 0,
+    tokens_out INTEGER DEFAULT 0,
+    duration_ms INTEGER DEFAULT 0,
+    status TEXT DEFAULT 'llm',
+    created_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS simulation_logs (
+    id TEXT PRIMARY KEY,
+    user_id TEXT,
+    user_name TEXT,
+    chunks_used INTEGER DEFAULT 0,
+    duration_ms INTEGER DEFAULT 0,
+    output_type TEXT DEFAULT 'llm',
+    created_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS feature_flags (
+    key TEXT PRIMARY KEY,
+    enabled INTEGER DEFAULT 1,
+    updated_at TEXT DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS broadcast_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    content TEXT NOT NULL,
+    created_at TEXT DEFAULT (datetime('now'))
+);
 """
 
 
@@ -72,7 +106,24 @@ async def get_db():
         yield db
 
 
+DEFAULT_FLAGS = ["simulations", "community", "chatbot", "enhance"]
+
+
 async def create_tables():
     async with aiosqlite.connect(DB_PATH) as db:
         await db.executescript(CREATE_TABLES_SQL)
+        # Safe column migrations (ignored if column already exists)
+        for sql in [
+            "ALTER TABLE users ADD COLUMN suspended INTEGER DEFAULT 0",
+            "ALTER TABLE users ADD COLUMN last_active TEXT",
+        ]:
+            try:
+                await db.execute(sql)
+            except Exception:
+                pass
+        # Seed default feature flags
+        for flag in DEFAULT_FLAGS:
+            await db.execute(
+                "INSERT OR IGNORE INTO feature_flags (key, enabled) VALUES (?, 1)", (flag,)
+            )
         await db.commit()

@@ -329,3 +329,75 @@ The `OPENAI_API_KEY` is in `.env`. Never log it or commit it.
   - **Per-message delete**: hover any bubble to reveal red × button. Calls `DELETE /api/chatbot/history/{id}`.
   - **Clear all history**: button in ProfilePanel footer with confirmation step.
   - **Message IDs**: all messages carry `id` from backend for delete operations.
+
+### 2026-06-01 — Developer Control Plane (Full Backend + UI)
+
+**What was built:**
+A complete internal developer control plane at `/developer` — separate from the user-facing app, gated by its own auth, backed by real database telemetry.
+
+**New pages:**
+- **DeveloperLoginPage.jsx** — Terminal boot sequence UI. Calls `POST /api/dev/auth`, stores returned JWT in `localStorage` as `unimind_dev_token`. Accessible at `http://localhost:5173/developer`.
+- **DeveloperPage.jsx** — 6-tab control plane. All tabs call real backend endpoints, no mock data:
+  - **LLM Health** — tokens today, estimated Azure cost, fallback rate, avg latency, per-call log. Auto-warning if fallback rate > 15%.
+  - **Onboarding Funnel** — signed up → chatbot complete → ran simulation → posted. Drop-off at each step, recent signup positions.
+  - **User List** — every user with chunk count, sim count, last active, agent quality label. Inline Clear (wipes knowledge + chat) and Suspend/Restore actions.
+  - **Simulation Monitor** — fallback rate front and centre, per-simulation log showing chunks used and output type (LLM vs fallback).
+  - **Controls** — 4 live feature flag toggles (simulations/community/chatbot/enhance), clear user data, delete post, broadcast system message to community feed.
+  - **Community Health** — posts/reactions per day charts, zero-engagement count, top posts by reactions.
+
+**Backend — new DB tables** (auto-created + migrated on startup):
+- `llm_logs` — every Azure OpenAI call: user, type, tokens in/out, latency ms, status
+- `simulation_logs` — every simulation: user, chunks used, duration, output type (llm/fallback)
+- `feature_flags` — 4 flags seeded to enabled=1 on first boot
+- `broadcast_messages` — archive of broadcasts sent
+- `users.suspended` + `users.last_active` — added via safe ALTER TABLE migration
+
+**Backend — instrumentation:**
+- `azure_openai.py` — `chat_complete()` now accepts `return_usage=True`, returns `{content, tokens_in, tokens_out, duration_ms}`
+- `simulate_life()` returns `(content, usage_dict)` tuple
+- `chatbot_router.py` — logs every LLM call to `llm_logs`, updates `users.last_active`
+- `simulate_router.py` — logs to both `llm_logs` + `simulation_logs`, updates `users.last_active`
+
+**Backend — dev auth** (`auth.py`):
+- `create_dev_token(email)` — 12h JWT with `role: "developer"` claim
+- `validate_dev_credentials(email, password)` — checks `DEV_CREDENTIALS` list (env-overridable)
+- `get_dev_user` dependency — validates dev JWT, rejects regular user tokens
+
+**Backend — new router** (`routers/dev_router.py`, prefix `/api/dev`):
+16 endpoints: `/auth`, `/llm/stats`, `/llm/recent`, `/llm/hourly`, `/funnel`, `/users`, `/users/{id}/clear`, `/users/{id}/suspend`, `/posts/{id}` (DELETE), `/broadcast`, `/flags` (GET+POST), `/simulations/stats`, `/simulations/recent`, `/simulations/daily`, `/community/stats`
+
+**Frontend — api.js:**
+Added `devLogin()` + 15 `getDevXxx/clearDevXxx/updateDevXxx` functions using a separate `devRequest()` helper that reads `unimind_dev_token`.
+
+**App.jsx routing:**
+- Detects `window.location.pathname === '/developer'` on mount
+- If true → starts at `developer-login` state → on success → `developer` state
+- Otherwise → starts at `onboarding` as before (user auth flow unchanged)
+- `AgenticWebPage` has a "Developer ⬡" button in TopBar that also navigates to developer page
+
+**Developer credentials:**
+```
+admin@unimind.dev  /  unimind-dev-2025
+team@unimind.dev   /  unimind-dev-2025
+```
+Override via `DEV_EMAIL_1`, `DEV_EMAIL_2`, `DEV_PASS` env vars.
+
+**Known gaps (documented in `docs/erd.md`):**
+- `suspended` flag exists in DB but no route handler checks it yet — suspended users can still call all endpoints
+- `llm_logs` has no index on `created_at` and no cleanup policy — will grow indefinitely
+- `last_active` only updates on chatbot + simulation calls, not page visits or community posts
+- `agent_skills` is stored as a JSON string in `users` table, not a queryable junction table
+- No indexes on any table — full table scans on every query
+
+**Docs added:**
+- `docs/erd.md` — full entity relationship diagram with known design issues
+- `docs/session-brief-2026-05-31.md` — detailed session brief of all changes
+
+**Dead files (unused, safe to delete):**
+- `frontend-react/src/pages/DeveloperSignUpPage.jsx`
+- `frontend-react/src/pages/SignInPage.jsx`
+
+**Frontend build:** 0 errors. **Backend syntax:** all files clean.
+
+**Frontend build:** 345 modules, 0 errors — `npm run build` passes.
+**No backend changes** — Developer page uses existing `/api/leaderboard` and `/api/network/growth`; all other metrics are mock data designed for future wiring.

@@ -49,7 +49,6 @@ export default function SignupPage({ onSignupSuccess, onGoLogin }) {
         transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
         className="relative z-10 w-full max-w-md px-6"
       >
-        {/* Logo */}
         <div className="text-center mb-10">
           <div
             className="inline-block text-xs tracking-[0.4em] mb-3 font-medium"
@@ -89,7 +88,7 @@ export default function SignupPage({ onSignupSuccess, onGoLogin }) {
                 type="text"
                 value={name}
                 onChange={e => setName(e.target.value)}
-                placeholder="Sudeep"
+                placeholder="Your name"
                 className="w-full rounded-xl px-4 py-3 text-sm outline-none transition-all"
                 style={{
                   background: 'rgba(255,255,255,0.05)',
