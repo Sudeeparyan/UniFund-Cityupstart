@@ -181,7 +181,7 @@ function FileChip({ name, type, onRemove }) {
   );
 }
 
-function EnhancePanel({ original, enhanced, loading, onConfirm, onCancel, onChange }) {
+function EnhancePanel({ original, enhanced, loading, flagged, hallucinations, onConfirm, onCancel, onChange }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 12, scale: 0.98 }}
@@ -219,6 +219,19 @@ function EnhancePanel({ original, enhanced, loading, onConfirm, onCancel, onChan
             />
           )}
         </div>
+        {flagged && hallucinations?.length > 0 && (
+          <div className="rounded-xl px-4 py-3" style={{ background: 'rgba(255,140,66,0.08)', border: '1px solid rgba(255,140,66,0.3)' }}>
+            <div className="text-[10px] tracking-[0.18em] mb-1.5" style={{ color: '#FF8C42' }}>⚠ AI ADDED UNVERIFIED DETAILS</div>
+            <div className="text-[11px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.5)' }}>
+              The expanded version may contain facts you didn't mention. Review before sending:
+            </div>
+            <ul className="mt-1.5 space-y-1">
+              {hallucinations.map((h, i) => (
+                <li key={i} className="text-[11px]" style={{ color: '#FF8C42' }}>· {h}</li>
+              ))}
+            </ul>
+          </div>
+        )}
         <div className="flex gap-3">
           <button onClick={() => onConfirm(enhanced)} disabled={loading || !enhanced}
             className="flex-1 py-2.5 rounded-xl text-sm font-medium tracking-wider"
@@ -913,6 +926,8 @@ export default function ChatbotPage({ userName, onComplete, onSkip, onHome }) {
   const [enhancedText, setEnhancedText] = useState('');
   const [enhanceLoading, setEnhanceLoading] = useState(false);
   const [enhanceOriginal, setEnhanceOriginal] = useState('');
+  const [enhanceFlagged, setEnhanceFlagged] = useState(false);
+  const [enhanceHallucinations, setEnhanceHallucinations] = useState([]);
 
   // Agent Studio state
   const [activeTab, setActiveTab] = useState('profile');
@@ -1087,6 +1102,8 @@ export default function ChatbotPage({ userName, onComplete, onSkip, onHome }) {
     try {
       const res = await enhanceContent(trimmed);
       setEnhancedText(res.enhanced);
+      setEnhanceFlagged(res.flagged || false);
+      setEnhanceHallucinations(res.hallucinations || []);
     } catch {
       setEnhancedText(trimmed);
     } finally {
@@ -1196,7 +1213,8 @@ export default function ChatbotPage({ userName, onComplete, onSkip, onHome }) {
                 <div className="mb-3">
                   <EnhancePanel
                     original={enhanceOriginal} enhanced={enhancedText} loading={enhanceLoading}
-                    onConfirm={handleEnhanceConfirm} onCancel={() => { setShowEnhance(false); setEnhancedText(''); }}
+                    flagged={enhanceFlagged} hallucinations={enhanceHallucinations}
+                    onConfirm={handleEnhanceConfirm} onCancel={() => { setShowEnhance(false); setEnhancedText(''); setEnhanceFlagged(false); setEnhanceHallucinations([]); }}
                     onChange={setEnhancedText}
                   />
                 </div>
