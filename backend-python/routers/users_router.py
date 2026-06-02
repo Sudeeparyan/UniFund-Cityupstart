@@ -36,12 +36,15 @@ async def get_me(
     db=Depends(get_db),
 ):
     profile = _row_to_profile(current_user)
-    cursor = await db.execute(
-        "SELECT COUNT(*) as cnt FROM posts WHERE user_id = ?",
-        (current_user["id"],),
-    )
-    row = await cursor.fetchone()
-    return UserProfile(**profile.dict(), posts_count=row["cnt"] if row else 0)
+    uid = current_user["id"]
+    post_cur = await db.execute("SELECT COUNT(*) as cnt FROM posts WHERE user_id = ?", (uid,))
+    post_row = await post_cur.fetchone()
+    chunk_cur = await db.execute("SELECT COUNT(*) as cnt FROM knowledge_chunks WHERE user_id = ?", (uid,))
+    chunk_row = await chunk_cur.fetchone()
+    data = profile.dict()
+    data["posts_count"] = post_row["cnt"] if post_row else 0
+    data["chunks_saved"] = chunk_row["cnt"] if chunk_row else 0
+    return UserProfile(**data)
 
 
 @router.post("/me/onboarding", response_model=UserProfile)

@@ -38,3 +38,4 @@ class UserProfile(BaseModel):
     agent_score: int = 100
     onboarding_complete: bool = False
     posts_count: int = 0
+    chunks_saved: int = 0

@@ -1,6 +1,8 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import DeveloperLoginPage from './pages/DeveloperLoginPage';
+import LoginPage  from './pages/LoginPage';
+import SignupPage from './pages/SignupPage';
 import { getMe, saveOnboarding } from './lib/api';
 
 const OnboardingPage  = lazy(() => import('./pages/OnboardingPage'));
@@ -86,7 +88,7 @@ function TransitionBridge({ phase }) {
 export default function App() {
   // page: 'onboarding' | 'transitioning' | 'chatbot' | 'agentic' | 'community' | 'timeline' | 'runway' | 'developer' | 'developer-login'
   const isDeveloperRoute = window.location.pathname === '/developer';
-  const [page, setPage] = useState(isDeveloperRoute ? 'developer-login' : 'onboarding');
+  const [page, setPage] = useState(isDeveloperRoute ? 'developer-login' : 'login');
   const [bridgePhase, setBridgePhase] = useState('idle');
   const [isExiting, setIsExiting] = useState(false);
   const [userName, setUserName] = useState('USER');
@@ -96,14 +98,30 @@ export default function App() {
   // Where chatbot should return after completion (onboarding for new users, agentic for returning)
   const [chatbotCompleteTarget, setChatbotCompleteTarget] = useState('onboarding');
 
-  // Auth skipped — no session restore needed
-  useEffect(() => {}, []);
+  // Session restore — if a valid JWT exists, skip straight to the agent web
+  useEffect(() => {
+    if (isDeveloperRoute) return;
+    const token = localStorage.getItem('unimind_token');
+    if (!token) return;
+    getMe()
+      .then(user => {
+        setAuthUser(user);
+        setUserName(user.name.toUpperCase());
+        setChatbotCompleteTarget('agentic');
+        setPage('agentic');
+      })
+      .catch(() => {
+        // Token expired or invalid — clear it and stay on onboarding
+        localStorage.removeItem('unimind_token');
+      });
+  }, []);
 
   // Auth skipped — these handlers are unused but kept for future re-enable
   function handleLoginSuccess(user) {
     setAuthUser(user);
     setUserName(user.name.toUpperCase());
-    setPage(user.onboarding_complete ? 'agentic' : 'onboarding');
+    setChatbotCompleteTarget('agentic');
+    setPage('agentic');
   }
 
   function handleSignupSuccess(user) {
@@ -111,10 +129,6 @@ export default function App() {
     setUserName(user.name.toUpperCase());
     setChatbotCompleteTarget('onboarding');
     setPage('chatbot');
-  }
-
-  function handleSkipAuth() {
-    setPage('onboarding');
   }
 
   async function handleEnter(answers) {
@@ -139,18 +153,18 @@ export default function App() {
   return (
     <div style={{ width: '100vw', height: '100vh', overflow: 'hidden', background: '#02030A' }}>
       <AnimatePresence>
-        {/* Auth skipped — login/signup pages commented out
         {page === 'login' && (
           <motion.div key="login" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.4 }} style={{ position: 'absolute', inset: 0 }}>
             <LoginPage onLoginSuccess={handleLoginSuccess} onGoSignup={() => setPage('signup')} />
           </motion.div>
         )}
+
         {page === 'signup' && (
           <motion.div key="signup" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.4 }} style={{ position: 'absolute', inset: 0 }}>
             <SignupPage onSignupSuccess={handleSignupSuccess} onGoLogin={() => setPage('login')} />
           </motion.div>
         )}
-        */}
+
         {page === 'developer-login' && (
           <motion.div key="developer-login" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.4 }} style={{ position: 'absolute', inset: 0 }}>
             <DeveloperLoginPage onSuccess={() => setPage('developer')} />

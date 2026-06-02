@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  sendChatMessage, getChatHistory, getMe,
+  sendChatMessage, getChatHistory, getMe, getChatChunks,
   clearChatHistory, deleteChatMessage, enhanceContent, uploadFile,
 } from '../lib/api';
 
@@ -437,6 +437,7 @@ function LeftPanelTabs({ activeTab, setActiveTab }) {
 }
 
 function AgentIdentityCard({ profile, buildStage, onClear }) {
+  debugger;
   const [confirmClear, setConfirmClear] = useState(false);
   const chunks = profile.chunks_saved || 0;
   const xp = chunks * XP_PER_CHUNK;
@@ -957,8 +958,19 @@ export default function ChatbotPage({ userName, onComplete, onSkip, onHome }) {
           const res = await sendChatMessage('__init__');
           setMessages([{ id: res.message.id, role: 'assistant', content: res.message.content }]);
         }
-        const me = await getMe();
-        setProfile({ bio: me.agent_bio || '', skills: me.agent_skills || [], chunks_saved: 0 });
+        const [me, chunks] = await Promise.all([getMe(), getChatChunks().catch(() => [])]);
+        const chunkCount = me.chunks_saved || chunks.length || 0;
+        const loadedProfile = { bio: me.agent_bio || '', skills: me.agent_skills || [], chunks_saved: chunkCount };
+        setProfile(loadedProfile);
+        recalcBuildStage(loadedProfile, setBuildStage);
+        if (chunks.length > 0) {
+          setKnowledgeItems(chunks.map((c, i) => ({
+            id: `init-${i}`,
+            content: c.content,
+            category: c.category || 'general',
+            addedAt: new Date(c.created_at).getTime(),
+          })));
+        }
       } catch (e) {
         console.warn('Chatbot init error:', e);
       } finally {

@@ -162,6 +162,19 @@ async def send_message(
     )
 
 
+@router.get("/chunks")
+async def get_chunks(
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_db),
+):
+    cursor = await db.execute(
+        "SELECT content, category, created_at FROM knowledge_chunks WHERE user_id=? ORDER BY created_at ASC",
+        (current_user["id"],),
+    )
+    rows = await cursor.fetchall()
+    return [{"content": r["content"], "category": r["category"], "created_at": r["created_at"]} for r in rows]
+
+
 @router.get("/history", response_model=list[ChatMessageOut])
 async def get_history(
     current_user: dict = Depends(get_current_user),

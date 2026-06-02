@@ -75,6 +75,8 @@ export const sendChatMessage = (content) =>
 
 export const getChatHistory = () => request('GET', '/api/chatbot/history');
 
+export const getChatChunks = () => request('GET', '/api/chatbot/chunks');
+
 export const clearChatHistory = () => request('DELETE', '/api/chatbot/history');
 
 export const deleteChatMessage = (id) => request('DELETE', `/api/chatbot/history/${id}`);
