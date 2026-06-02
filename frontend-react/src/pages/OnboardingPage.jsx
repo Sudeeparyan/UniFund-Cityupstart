@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { createUniMindScene } from '../lib/scene.js';
+import { createUniFundScene } from '../lib/scene.js';
 
 // ---------- Adaptive question tree ----------
 const Q1 = {
@@ -56,7 +56,7 @@ function SceneHost({ stage, onReady }) {
 
   useEffect(() => {
     if (!ref.current) return;
-    const inst = createUniMindScene(ref.current);
+    const inst = createUniFundScene(ref.current);
     sceneRef.current = inst;
     onReady && onReady(inst);
     return () => inst.destroy();
@@ -268,7 +268,7 @@ function FinalPayoff({ visible }) {
           className="absolute inset-x-0 bottom-[10%] flex flex-col items-center pointer-events-none select-none">
           <motion.div initial={{ letterSpacing: '0.35em', opacity: 0 }} animate={{ letterSpacing: '0.12em', opacity: 1 }}
             transition={{ duration: 1.6, delay: 0.4 }} className="text-[11px] uppercase text-white/45">
-            UniMind · Agent Initialized
+            UniFund · Agent Initialized
           </motion.div>
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1.4, delay: 0.7 }}
@@ -318,7 +318,7 @@ function TopBar() {
           <div className="w-6 h-6 rounded-md" style={{ background: 'conic-gradient(from 200deg, #00D1FF, #7B61FF, #FF5FB6, #00D1FF)', filter: 'blur(0.2px)' }} />
           <div className="absolute inset-0 rounded-md" style={{ boxShadow: '0 0 24px rgba(123,97,255,0.55)' }} />
         </div>
-        <div className="text-white text-[14px] tracking-[0.18em] font-medium">UNIMIND</div>
+        <div className="text-white text-[14px] tracking-[0.18em] font-medium">UNIFUND</div>
         <div className="text-white/30 text-[12px] tracking-[0.18em]">/ THE AGENTIC WEB</div>
       </div>
       <div className="flex items-center gap-6 text-[12px] text-white/45 tracking-wide">
@@ -520,7 +520,7 @@ export default function OnboardingPage({ onEnter }) {
                     className="flex-2 flex-grow rounded-full py-3 text-[14px] font-semibold tracking-tight"
                     style={{ background: 'linear-gradient(90deg,#00D1FF 0%, #7B61FF 50%, #FF5FB6 100%)', color: '#0a0d14', boxShadow: '0 10px 40px rgba(123,97,255,0.25)' }}
                   >
-                    Enter UniMind →
+                    Enter UniFund →
                   </button>
                 </div>
               </motion.div>

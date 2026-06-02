@@ -347,7 +347,7 @@ function StudioHeader({ buildStage, profile, onBack, onHome }) {
           <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: 'conic-gradient(from 200deg, #00D1FF, #7B61FF, #FF5FB6, #7B61FF, #00D1FF)', filter: 'blur(1px)' }} />
           <div style={{ position: 'absolute', inset: 4, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,255,255,0.9) 0%, rgba(180,160,255,0.6) 60%, transparent 100%)' }} />
         </div>
-        <span className="text-xs tracking-[0.3em] group-hover:opacity-80 transition-opacity" style={{ color: 'rgba(255,255,255,0.65)' }}>UNIMIND</span>
+        <span className="text-xs tracking-[0.3em] group-hover:opacity-80 transition-opacity" style={{ color: 'rgba(255,255,255,0.65)' }}>UNIFUND</span>
         <span style={{ color: 'rgba(255,255,255,0.25)' }}>/</span>
         <span className="text-xs tracking-[0.22em]"
           style={{ background: 'linear-gradient(135deg, #00D1FF, #7B61FF, #FF5FB6)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
@@ -761,7 +761,7 @@ function ToolCard({ title, icon, content, loading: toolLoading }) {
 
 function ToolsPanel({ profile, knowledgeItems }) {
   const resumeContent = profile.bio
-    ? `RESUME SNAPSHOT — UniMind Agent\n\nBIO\n${profile.bio}\n\nSKILLS\n${profile.skills.join(', ') || 'Not yet detected'}\n\nKNOWLEDGE INSIGHTS\n${knowledgeItems.length} insights captured`
+    ? `RESUME SNAPSHOT — UniFund Agent\n\nBIO\n${profile.bio}\n\nSKILLS\n${profile.skills.join(', ') || 'Not yet detected'}\n\nKNOWLEDGE INSIGHTS\n${knowledgeItems.length} insights captured`
     : '';
   const bioContent = profile.bio || '';
   const knowledgeContent = Object.entries(CATEGORY_CONFIG).reduce((acc, [cat, cfg]) => {

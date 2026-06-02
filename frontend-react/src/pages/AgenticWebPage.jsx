@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useMemo, useCallback, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { createUniMindWeb } from '../lib/scene2.js';
+import { createUniFundWeb } from '../lib/scene2.js';
 import { AGENTS, USER_IDX, hydrateAgents, bfsPath, pathToEdgeIndices, setUserName } from '../lib/agentData.js';
 import { runSimulate } from '../lib/api.js';
 
@@ -9,7 +9,7 @@ function WebSceneHost({ onReady }) {
   const ref = useRef(null);
   useEffect(() => {
     if (!ref.current) return;
-    const inst = createUniMindWeb(ref.current);
+    const inst = createUniFundWeb(ref.current);
     onReady && onReady(inst);
     return () => inst.destroy();
   }, []);
@@ -17,7 +17,7 @@ function WebSceneHost({ onReady }) {
 }
 
 // ---------- Top brand bar ----------
-function TopBar({ phase, simRunning, onCommunity, onChatbot, onRunway, onDeveloper }) {
+function TopBar({ phase, simRunning }) {
   return (
     <div className="absolute top-0 inset-x-0 z-30 px-10 pt-7 flex items-center justify-between pointer-events-none">
       <div className="flex items-center gap-3">
@@ -28,73 +28,14 @@ function TopBar({ phase, simRunning, onCommunity, onChatbot, onRunway, onDevelop
           }} />
           <div className="absolute inset-0 rounded-md" style={{ boxShadow: '0 0 24px rgba(123,97,255,0.55)' }} />
         </div>
-        <div className="text-white text-[14px] tracking-[0.18em] font-medium">UNIMIND</div>
+        <div className="text-white text-[14px] tracking-[0.18em] font-medium">UNIFUND</div>
         <div className="text-white/30 text-[12px] tracking-[0.18em]">/ AGENTIC WEB</div>
       </div>
-      <div className="flex items-center gap-5 text-[11px] mono text-white/45 tracking-wider pointer-events-auto">
-        {simRunning && (
-          <span className="hidden md:inline opacity-80">
-            {`RUNNING SIMULATION · PHASE 0${phase}/04`}
-          </span>
-        )}
-        <motion.button
-          onClick={onDeveloper}
-          whileHover={{ scale: 1.06 }}
-          whileTap={{ scale: 0.96 }}
-          className="flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] tracking-[0.22em] uppercase transition-all"
-          style={{
-            background: 'linear-gradient(135deg, rgba(0,255,148,0.08), rgba(0,209,255,0.12))',
-            border: '1px solid rgba(0,255,148,0.28)',
-            color: 'rgba(255,255,255,0.85)',
-          }}
-        >
-          <span style={{ fontSize: 12 }}>⬡</span>
-          <span>Developer</span>
-        </motion.button>
-        <motion.button
-          onClick={onRunway}
-          whileHover={{ scale: 1.06 }}
-          whileTap={{ scale: 0.96 }}
-          className="flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] tracking-[0.22em] uppercase transition-all"
-          style={{
-            background: 'linear-gradient(135deg, rgba(255,213,79,0.12), rgba(0,209,255,0.14))',
-            border: '1px solid rgba(255,213,79,0.32)',
-            color: 'rgba(255,255,255,0.85)',
-          }}
-        >
-          <span style={{ fontSize: 12 }}>💸</span>
-          <span>Runway</span>
-        </motion.button>
-        <motion.button
-          onClick={onChatbot}
-          whileHover={{ scale: 1.06 }}
-          whileTap={{ scale: 0.96 }}
-          className="flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] tracking-[0.22em] uppercase transition-all"
-          style={{
-            background: 'linear-gradient(135deg, rgba(123,97,255,0.12), rgba(255,95,182,0.18))',
-            border: '1px solid rgba(123,97,255,0.38)',
-            color: 'rgba(255,255,255,0.8)',
-          }}
-        >
-          <span style={{ fontSize: 12 }}>✦</span>
-          <span>Chatbot</span>
-        </motion.button>
-        <motion.button
-          onClick={onCommunity}
-          whileHover={{ scale: 1.06 }}
-          whileTap={{ scale: 0.96 }}
-          className="flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] tracking-[0.22em] uppercase transition-all"
-          style={{
-            background: 'linear-gradient(135deg, rgba(0,209,255,0.12), rgba(123,97,255,0.18))',
-            border: '1px solid rgba(123,97,255,0.38)',
-            color: 'rgba(255,255,255,0.8)',
-          }}
-        >
-          <span style={{ fontSize: 12 }}>◎</span>
-          <span>Community</span>
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" style={{ boxShadow: '0 0 6px #34d399' }} />
-        </motion.button>
-      </div>
+      {simRunning && (
+        <div className="text-[11px] mono text-white/45 tracking-wider">
+          {`RUNNING SIMULATION · PHASE 0${phase}/04`}
+        </div>
+      )}
     </div>
   );
 }
@@ -882,7 +823,7 @@ function CoreLabel({ scenePos, dim, hidden }) {
       transition={{ duration:0.6 }}
       className="absolute z-10 pointer-events-none"
       style={{ left:scenePos.x, top:scenePos.y+78, transform:'translate(-50%,0)', textAlign:'center' }}>
-      <div className="text-[10px] tracking-[0.36em] text-white/55 uppercase">UniMind Core</div>
+      <div className="text-[10px] tracking-[0.36em] text-white/55 uppercase">UniFund Core</div>
       <div className="text-[12px] mt-1 text-white/40 tracking-wide">Collective Intelligence Engine</div>
     </motion.div>
   );
@@ -1012,7 +953,7 @@ function EntryOverlay({ visible }) {
               animate={{ letterSpacing:'0.32em', opacity:1 }}
               transition={{ duration:1.6 }}
               className="text-[11px] uppercase text-white/50">
-              entering unimind
+              entering unifund
             </motion.div>
             <motion.div
               initial={{ opacity:0, y:8 }}
@@ -1067,7 +1008,7 @@ function PortalNext({ visible, onReset, onTimeline }) {
               animate={{ opacity:0.6, letterSpacing:'0.38em' }}
               transition={{ duration:1.4, delay:0.5 }}
               className="text-[10px] uppercase mono text-white/60">
-              UniMind · Processing Complete
+              UniFund · Processing Complete
             </motion.div>
 
             <motion.div
@@ -1314,7 +1255,7 @@ export default function AgenticWebPage({ userName = '', onNavigateCommunity, onN
       <WebSceneHost onReady={setScene} />
       <DustOverlay />
 
-      <TopBar phase={phase} simRunning={simRunning} onCommunity={onNavigateCommunity} onChatbot={onNavigateChatbot} onRunway={onNavigateRunway} onDeveloper={onNavigateDeveloper} />
+      <TopBar phase={phase} simRunning={simRunning} />
 
       <CoreLabel scenePos={coreScreen} dim={coreLabelDim} hidden={coreLabelHidden} />
       <CoreHover hovered={coreHovered && !simRunning} scenePos={coreScreen} mousePos={mousePos} />

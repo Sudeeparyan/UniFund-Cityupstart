@@ -132,9 +132,9 @@ export default function SignInPage({ onLoginSuccess, onGoSignup, onGoDeveloper }
     setLoading(true); setError('');
     try {
       const data = await login(email, password);
-      localStorage.setItem('unimind_token', data.access_token);
-      localStorage.setItem('unimind_name', data.name);
-      localStorage.setItem('unimind_user_id', data.user_id);
+      localStorage.setItem('unifund_token', data.access_token);
+      localStorage.setItem('unifund_name', data.name);
+      localStorage.setItem('unifund_user_id', data.user_id);
       onLoginSuccess({ id: data.user_id, name: data.name });
     } catch (err) {
       setError(err.message || 'Login failed');
@@ -191,7 +191,7 @@ export default function SignInPage({ onLoginSuccess, onGoSignup, onGoDeveloper }
         <div style={{ position: 'absolute', top: 48, left: 48 }}>
           <motion.div initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}>
-            <div style={{ fontSize: 11, letterSpacing: '0.4em', color: 'rgba(255,255,255,0.3)', marginBottom: 6 }}>UNIMIND</div>
+            <div style={{ fontSize: 11, letterSpacing: '0.4em', color: 'rgba(255,255,255,0.3)', marginBottom: 6 }}>UNIFUND</div>
             <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.15)', letterSpacing: '0.2em' }}>AGENTIC WEB v1.0</div>
           </motion.div>
         </div>
@@ -274,7 +274,7 @@ export default function SignInPage({ onLoginSuccess, onGoSignup, onGoDeveloper }
           {/* Footer links */}
           <div style={{ marginTop: 32, display: 'flex', flexDirection: 'column', gap: 14, alignItems: 'center' }}>
             <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.25)' }}>
-              New to UniMind?{' '}
+              New to UniFund?{' '}
               <button onClick={onGoSignup}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12,
                   color: '#00D1FF', letterSpacing: '0.04em', padding: 0 }}>

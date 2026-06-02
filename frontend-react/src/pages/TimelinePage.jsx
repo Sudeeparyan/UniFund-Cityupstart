@@ -17,7 +17,7 @@ function TopBar({ onBack, onChatbot }) {
           />
           <div className="absolute inset-0 rounded-md" style={{ boxShadow: '0 0 24px rgba(123,97,255,0.55)' }} />
         </div>
-        <span className="text-[14px] tracking-[0.18em] font-medium text-white">UNIMIND</span>
+        <span className="text-[14px] tracking-[0.18em] font-medium text-white">UNIFUND</span>
         <span className="text-white/30 text-[12px] tracking-[0.18em]">/</span>
         <span
           className="text-[12px] tracking-[0.22em]"
@@ -529,7 +529,7 @@ export default function TimelinePage({ simulationData, knowledgeCount: initialKn
             className="text-center mb-10"
           >
             <div className="text-[9px] tracking-[0.45em] uppercase mb-3" style={{ color: 'rgba(255,255,255,0.3)' }}>
-              UniMind · Simulation Complete · 2,847 Lifetimes Analyzed
+              UniFund · Simulation Complete · 2,847 Lifetimes Analyzed
             </div>
             <h1
               className="text-[44px] leading-tight tracking-tight font-light"

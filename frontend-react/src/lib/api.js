@@ -1,7 +1,7 @@
 const BASE = 'http://localhost:8000';
 
 function getToken() {
-  return localStorage.getItem('unimind_token');
+  return localStorage.getItem('unifund_token');
 }
 
 function authHeaders() {
@@ -85,7 +85,7 @@ export const enhanceContent = (content) =>
   request('POST', '/api/chatbot/enhance', { content });
 
 export const uploadFile = async (file) => {
-  const token = localStorage.getItem('unimind_token');
+  const token = localStorage.getItem('unifund_token');
   const form = new FormData();
   form.append('file', file);
   const res = await fetch(`${BASE}/api/chatbot/upload`, {
@@ -105,7 +105,7 @@ export const saveKnowledge = (content, category) =>
 
 // ── Developer (unauthenticated login, then dev-token requests) ────────────────
 function getDevToken() {
-  return localStorage.getItem('unimind_dev_token');
+  return localStorage.getItem('unifund_dev_token');
 }
 
 function devHeaders() {

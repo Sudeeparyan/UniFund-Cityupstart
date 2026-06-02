@@ -24,7 +24,7 @@ const D = {
 
 // ── Boot sequence ─────────────────────────────────────────────────────────────
 const BOOT = [
-  { text: 'Initialising UniMind Control Plane…', ok: false },
+  { text: 'Initialising UniFund Control Plane…', ok: false },
   { text: 'Backend connection established',       ok: true  },
   { text: 'Agent network: 1,401 nodes online',    ok: true  },
   { text: 'EU AI Act compliance modules loaded',  ok: true  },
@@ -138,7 +138,7 @@ export default function DeveloperLoginPage({ onSuccess }) {
     setError(''); setLoading(true);
     try {
       const data = await devLogin(email.trim(), password);
-      localStorage.setItem('unimind_dev_token', data.token);
+      localStorage.setItem('unifund_dev_token', data.token);
       onSuccess();
     } catch (err) {
       setError(err.message || 'Invalid credentials.');
@@ -179,7 +179,7 @@ export default function DeveloperLoginPage({ onSuccess }) {
               boxShadow: '0 0 24px rgba(123,97,255,0.4)' }} />
             <div>
               <div style={{ fontSize: 14, fontWeight: 700, color: D.text, letterSpacing: '0.02em' }}>
-                UniMind
+                UniFund
               </div>
               <div style={{ fontSize: 11, color: D.muted, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
                 Control Plane
@@ -192,7 +192,7 @@ export default function DeveloperLoginPage({ onSuccess }) {
             Internal developer<br />dashboard
           </div>
           <div style={{ fontSize: 13, color: D.sub, lineHeight: 1.7, maxWidth: 320 }}>
-            Monitor, evaluate and control the UniMind platform in real time. Restricted to authorised team members.
+            Monitor, evaluate and control the UniFund platform in real time. Restricted to authorised team members.
           </div>
         </motion.div>
 
@@ -269,7 +269,7 @@ export default function DeveloperLoginPage({ onSuccess }) {
                     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                       <Field label="Email address" type="email" value={email}
                         onChange={e => setEmail(e.target.value)}
-                        placeholder="admin@unimind.dev" inputRef={emailRef} />
+                        placeholder="admin@unifund.dev" inputRef={emailRef} />
                       <Field label="Password" type="password" value={password}
                         onChange={e => setPassword(e.target.value)}
                         placeholder="Enter your password" />

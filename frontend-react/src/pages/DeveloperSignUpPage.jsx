@@ -249,9 +249,9 @@ export default function DeveloperSignUpPage({ onBack }) {
           <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:8 }}>
             <div style={{ width:8, height:8, borderRadius:'50%', background:G,
               boxShadow:`0 0 12px ${G}`, animation:'devFloat 3s ease-in-out infinite' }} />
-            <span style={{ fontSize:10, letterSpacing:'0.4em', color:'rgba(255,255,255,0.25)' }}>UNIMIND</span>
+            <span style={{ fontSize:10, letterSpacing:'0.4em', color:'rgba(255,255,255,0.25)' }}>UNIFUND</span>
           </div>
-          <TermLine text="unimind --developer-access --request" />
+          <TermLine text="unifund --developer-access --request" />
         </motion.div>
 
         <motion.div initial={{opacity:0,y:12}} animate={{opacity:1,y:0}}
@@ -265,7 +265,7 @@ export default function DeveloperSignUpPage({ onBack }) {
             </span>
           </h1>
           <p style={{ fontSize:13, color:'rgba(255,255,255,0.35)', marginBottom:36, lineHeight:1.65, letterSpacing:'0.03em' }}>
-            Get programmatic access to UniMind's intelligence network — evaluation APIs, compliance tooling, and real-time analytics.
+            Get programmatic access to UniFund's intelligence network — evaluation APIs, compliance tooling, and real-time analytics.
           </p>
         </motion.div>
 

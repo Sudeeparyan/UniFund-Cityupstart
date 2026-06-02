@@ -1,5 +1,5 @@
-// UniMind Agentic Web — cinematic neural cosmos v2
-// API: createUniMindWeb(container) -> { destroy, runSimulation, getCoreScreenPos, onPhase, onCoreHover, onCoreClick, onPortal, resetSimulation, setTimeframe }
+// UniFund Agentic Web — cinematic neural cosmos v2
+// API: createUniFundWeb(container) -> { destroy, runSimulation, getCoreScreenPos, onPhase, onCoreHover, onCoreClick, onPortal, resetSimulation, setTimeframe }
 
 import * as THREE from "three";
 import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer.js";
@@ -76,7 +76,7 @@ function makeStarTexture() {
   return new THREE.CanvasTexture(c);
 }
 
-export function createUniMindWeb(container) {
+export function createUniFundWeb(container) {
   const W = () => container.clientWidth || window.innerWidth;
   const H = () => container.clientHeight || window.innerHeight;
   const isMobile = /Mobi|Android/i.test(navigator.userAgent);
@@ -813,7 +813,7 @@ export function createUniMindWeb(container) {
     streamMode = false;
   }
 
-  // ---------- UniMind Core ----------
+  // ---------- UniFund Core ----------
   const coreGroup = new THREE.Group();
   scene.add(coreGroup);
 

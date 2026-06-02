@@ -2246,7 +2246,7 @@ export default function DeveloperPage({ onBack }) {
   const [tab, setTab] = useState('llm');
 
   function handleSignOut() {
-    localStorage.removeItem('unimind_dev_token');
+    localStorage.removeItem('unifund_dev_token');
     onBack();
   }
 

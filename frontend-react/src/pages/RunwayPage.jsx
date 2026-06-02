@@ -194,7 +194,7 @@ const NAV = [
   { key:'deals',     label:'Deals'     },
 ];
 
-function Sidebar({ activeTab, setActiveTab, onBack }) {
+function Sidebar({ activeTab, setActiveTab }) {
   return (
     <div style={{ width:156, background:SB, display:'flex', flexDirection:'column',
       padding:'22px 0 20px', flexShrink:0, zIndex:10,
@@ -228,75 +228,6 @@ function Sidebar({ activeTab, setActiveTab, onBack }) {
             </button>
           );
         })}
-      </div>
-
-      {/* Back */}
-      <div style={{ padding:'0 10px' }}>
-        <button onClick={onBack}
-          onMouseEnter={e => { e.currentTarget.style.color='#F87171'; }}
-          onMouseLeave={e => { e.currentTarget.style.color='rgba(255,255,255,0.28)'; }}
-          style={{ display:'flex', alignItems:'center', padding:'9px 10px',
-            borderRadius:8, border:'none', cursor:'pointer', fontFamily:'inherit',
-            textAlign:'left', width:'100%', fontSize:13, fontWeight:400,
-            background:'transparent', color:'rgba(255,255,255,0.28)',
-            transition:'color 0.15s', borderLeft:'2px solid transparent' }}>
-          Back
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ── Header ────────────────────────────────────────────────────────────────────
-
-function DashHeader({ userName, runway }) {
-  const label = userName
-    ? userName.charAt(0).toUpperCase() + userName.slice(1).toLowerCase()
-    : 'User';
-  const clampedRunway = Math.min(runway, 12);
-  return (
-    <div style={{ padding:'28px 28px 18px', display:'flex', alignItems:'flex-start',
-      justifyContent:'space-between', flexShrink:0 }}>
-      <div>
-        <h1 style={{ fontSize:30, fontWeight:700, color:'white', margin:0,
-          letterSpacing:'-0.02em', lineHeight:1.2 }}>
-          Welcome, {label}!
-        </h1>
-        <p style={{ fontSize:13, color:'rgba(255,255,255,0.36)', margin:'5px 0 0' }}>
-          Automate savings and achieve financial freedom.
-        </p>
-      </div>
-      <div style={{ display:'flex', alignItems:'center', gap:8,
-        padding:'7px 16px', height:38, borderRadius:10,
-        background:'rgba(255,255,255,0.05)' }}>
-        <span style={{ fontSize:15, fontWeight:700, color:TEAL,
-          fontFamily:"'JetBrains Mono',monospace" }}>
-          {clampedRunway >= 12 ? '12+' : clampedRunway.toFixed(1)}
-        </span>
-        <span style={{ fontSize:12, color:'rgba(255,255,255,0.38)' }}>months runway today</span>
-        <span style={{ fontSize:12, color:'rgba(255,255,255,0.18)' }}>›</span>
-      </div>
-      <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-        <button style={{ width:38, height:38, borderRadius:10, border:'none', cursor:'pointer',
-          background:'rgba(255,255,255,0.05)', color:'rgba(255,255,255,0.4)',
-          display:'flex', alignItems:'center', justifyContent:'center',
-          fontSize:16, fontFamily:'inherit' }}>⌕</button>
-        <div style={{ position:'relative' }}>
-          <button style={{ width:38, height:38, borderRadius:10, border:'none', cursor:'pointer',
-            background:'rgba(255,255,255,0.05)', color:'rgba(255,255,255,0.4)',
-            display:'flex', alignItems:'center', justifyContent:'center',
-            fontSize:11, fontFamily:'inherit', letterSpacing:'0.02em' }}>4</button>
-          <div style={{ position:'absolute', top:-3, right:-3, width:17, height:17,
-            borderRadius:'50%', background:RED,
-            display:'flex', alignItems:'center', justifyContent:'center',
-            fontSize:8, fontWeight:700, color:'white' }}>4</div>
-        </div>
-        <div style={{ width:38, height:38, borderRadius:'50%', flexShrink:0,
-          background:'linear-gradient(135deg,#F59E0B,#EF4444)',
-          display:'flex', alignItems:'center', justifyContent:'center',
-          fontSize:15, fontWeight:700, color:'white', cursor:'pointer' }}>
-          {userName ? userName.charAt(0).toUpperCase() : 'U'}
-        </div>
       </div>
     </div>
   );
@@ -1712,7 +1643,7 @@ function computePlan(monthlyIncome, expenses) {
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 
-export default function RunwayPage({ userName = 'USER', onBack, onHome }) {
+export default function RunwayPage({ userName = 'USER' }) {
   const [sources, setSources] = useState(INIT_SOURCES);
   const [categories] = useState(INIT_CATEGORIES);
   const [savings, setSavings] = useState(3400);
@@ -1788,15 +1719,13 @@ export default function RunwayPage({ userName = 'USER', onBack, onHome }) {
     <div style={{ display:'flex', width:'100vw', height:'100vh', overflow:'hidden',
       background:BG, fontFamily:'Manrope,sans-serif', position:'relative' }}>
 
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} onBack={onBack} />
+      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
 
       {/* Main */}
       <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
 
-        <DashHeader userName={userName} runway={runway} />
-
         {/* Tool cards row */}
-        <div style={{ padding:'0 28px 18px', display:'flex', gap:10, overflowX:'auto',
+        <div style={{ padding:'20px 28px 14px', display:'flex', gap:10, overflowX:'auto',
           flexShrink:0, scrollbarWidth:'none' }}>
           {sources.filter(s => s.active && s.amount > 0).map(src => (
             <ToolCard key={src.id} source={src} />
