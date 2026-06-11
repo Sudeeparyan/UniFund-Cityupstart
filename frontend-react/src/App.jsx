@@ -2,7 +2,7 @@ import { useState, useEffect, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
-import { getMe, saveOnboarding } from './lib/api';
+import { guestLogin, saveOnboarding } from './lib/api';
 
 const OnboardingPage  = lazy(() => import('./pages/OnboardingPage'));
 const ChatbotPage     = lazy(() => import('./pages/ChatbotPage'));
@@ -96,8 +96,30 @@ export default function App() {
   // Where chatbot should return after completion (onboarding for new users, agentic for returning)
   const [chatbotCompleteTarget, setChatbotCompleteTarget] = useState('onboarding');
 
-  // Auth skipped — no session restore needed
-  useEffect(() => {}, []);
+  // Auto-obtain a guest token so all protected API calls work without real auth
+  useEffect(() => {
+    async function ensureToken() {
+      const existing = localStorage.getItem('unimind_token');
+      if (existing) {
+        // Verify it still works; if not, refresh it
+        try {
+          const { getMe } = await import('./lib/api');
+          await getMe();
+          return;
+        } catch {
+          localStorage.removeItem('unimind_token');
+        }
+      }
+      try {
+        const { access_token, name } = await guestLogin();
+        localStorage.setItem('unimind_token', access_token);
+        if (name) setUserName(name.toUpperCase());
+      } catch (e) {
+        console.warn('Guest login failed — backend may be down:', e.message);
+      }
+    }
+    ensureToken();
+  }, []);
 
   // Auth skipped — these handlers are unused but kept for future re-enable
   function handleLoginSuccess(user) {

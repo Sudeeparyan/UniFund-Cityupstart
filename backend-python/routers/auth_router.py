@@ -31,6 +31,30 @@ async def signup(payload: SignupRequest, db=Depends(get_db)):
     return TokenResponse(access_token=token, user_id=user_id, name=payload.name.strip())
 
 
+@router.post("/guest", response_model=TokenResponse)
+async def guest_login(db=Depends(get_db)):
+    guest_email = "guest@unimind.app"
+    cursor = await db.execute("SELECT id, name FROM users WHERE email = ?", (guest_email,))
+    user = await cursor.fetchone()
+
+    if not user:
+        user_id = "guest-00000000-0000-0000-0000-000000000000"
+        created_at = datetime.now(timezone.utc).isoformat()
+        pw_hash = hash_password("__guest__")
+        await db.execute(
+            "INSERT INTO users (id, email, password_hash, name, created_at) VALUES (?, ?, ?, ?, ?)",
+            (user_id, guest_email, pw_hash, "Explorer", created_at),
+        )
+        await db.commit()
+        name = "Explorer"
+    else:
+        user_id = user["id"]
+        name = user["name"]
+
+    token = create_access_token(user_id, name)
+    return TokenResponse(access_token=token, user_id=user_id, name=name)
+
+
 @router.post("/login", response_model=TokenResponse)
 async def login(payload: LoginRequest, db=Depends(get_db)):
     cursor = await db.execute(

@@ -41,7 +41,8 @@ async def get_me(
         (current_user["id"],),
     )
     row = await cursor.fetchone()
-    return UserProfile(**profile.dict(), posts_count=row["cnt"] if row else 0)
+    profile.posts_count = row["cnt"] if row else 0
+    return profile
 
 
 @router.post("/me/onboarding", response_model=UserProfile)

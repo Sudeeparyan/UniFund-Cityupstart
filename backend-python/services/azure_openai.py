@@ -26,8 +26,7 @@ async def chat_complete(messages: list[dict], temperature: float = 0.8, max_toke
     response = await client.chat.completions.create(
         model=DEPLOYMENT,
         messages=messages,
-        temperature=temperature,
-        max_tokens=max_tokens,
+        max_completion_tokens=max_tokens,
     )
     return response.choices[0].message.content or ""
 

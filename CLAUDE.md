@@ -75,26 +75,30 @@ Frontend: http://localhost:5173
 
 ---
 
-## Current State of the Project (as of 2026-05-17)
+## Current State of the Project (as of 2026-05-26)
 
 ### What Is Built and Working
 
 #### Frontend Pages (in `frontend-react/src/pages/`)
 | Page | Status | Description |
 |---|---|---|
-| `LoginPage.jsx` | ✅ Complete | Email/password login, stores JWT to localStorage |
-| `SignupPage.jsx` | ✅ Complete | Name/email/password signup, navigates to ChatbotPage |
-| `ChatbotPage.jsx` | ✅ Complete | AI knowledge interview, live profile panel (bio + skills update as you chat) |
-| `OnboardingPage.jsx` | ✅ Complete | 3-step questionnaire + 3D particle morphing (dust→molecule→DNA→brain). Now passes `answers` to App |
-| `AgenticWebPage.jsx` | ✅ Complete | 3D network visualization of 1,401 agents. Simulation HUD. Leaderboard. Search. Filters. Timeline scrubber |
-| `CommunityPage.jsx` | ✅ Complete | Social feed now loads posts from DB + saves new posts to DB. Reactions fire-and-forget to API |
+| `LoginPage.jsx` | ✅ Complete | Email/password login, stores JWT to localStorage — **currently bypassed** |
+| `SignupPage.jsx` | ✅ Complete | Name/email/password signup — **currently bypassed** |
+| `ChatbotPage.jsx` | ✅ Complete | AI knowledge interview. File upload (PDF/DOCX/TXT/image). Content Enhancer (✦). Per-message delete. Clear history. XP gamification. |
+| `OnboardingPage.jsx` | ✅ Complete | Chat-style adaptive questionnaire + 3D particle morphing. Q2 adapts based on Q1 answer. Passes `answers` to App. |
+| `AgenticWebPage.jsx` | ✅ Complete | 3D network visualization of 1,401 agents. Simulation fires concurrently with animation. Navigation to Timeline, Community, Runway, Chatbot. |
+| `TimelinePage.jsx` | ✅ Complete | 3 LLM-generated life path cards. ContextQualityBanner (signal strength). ChatbotCTA. "Enrich Agent" button returns to chatbot then agentic. |
+| `CommunityPage.jsx` | ✅ Complete | Full rewrite. AnimatedNumber, real ProfileCard (score + badges from API), FeaturedStoriesBar, SortSelector (Hot/New/Top/Rising), TrendingSection (API), SuggestedConnections. |
+| `RunwayPage.jsx` | ✅ Complete | Developer financial runway tracker (client-side). Income sources, expense categories, monthly chart, AI insights, dev deals. |
 
 #### App Routing (`frontend-react/src/App.jsx`)
-Page state machine: `'login'` → `'signup'` → `'chatbot'` → `'onboarding'` → `'transitioning'` → `'agentic'` → `'community'`
+Page state machine: `'onboarding'` → `'transitioning'` → `'agentic'` → `'timeline'` | `'community'` | `'runway'` | `'chatbot'`
 
-- Session persistence: checks `localStorage` on mount, calls `getMe()` to restore session
-- `userName` comes from auth (not hardcoded)
-- `handleEnter(answers)` saves onboarding answers to backend before transition
+- **Auth bypassed** — app starts directly at `'onboarding'`. Login/signup pages exist but are commented out.
+- All pages except Login/Signup use `React.lazy()` + `<Suspense>` for code splitting
+- `simulationData` + `simulationKnowledgeCount` flow from AgenticWebPage → TimelinePage
+- `chatbotCompleteTarget` controls where chatbot returns (`'onboarding'` for new users, `'agentic'` for returning)
+- `handleEnter(answers)` non-blockingly saves onboarding answers, then runs cinematic transition
 
 #### API Layer (`frontend-react/src/lib/api.js`)
 Single file for all fetch calls. Reads JWT from `localStorage` key `unimind_token`. Base URL: `http://localhost:8000`.
@@ -106,22 +110,23 @@ All endpoints live in `backend-python/routers/`. See `docs/api-reference.md` for
 |---|---|
 | POST /api/auth/signup | ✅ |
 | POST /api/auth/login | ✅ |
-| GET /api/users/me | ✅ |
+| GET /api/users/me | ✅ (includes posts_count) |
 | POST /api/users/me/onboarding | ✅ |
 | GET /api/agents | ✅ |
 | GET /api/agents/search?q= | ✅ |
-| POST /api/simulate | ✅ (Azure OpenAI) |
+| POST /api/simulate | ✅ (structured JSON: 3 paths + collective_insight) |
 | GET /api/posts | ✅ |
+| GET /api/posts/trending | ✅ |
 | POST /api/posts | ✅ |
 | POST /api/posts/{id}/react | ✅ |
 | GET /api/leaderboard | ✅ |
 | GET /api/network/growth | ✅ |
 | GET /api/achievements/{user_id} | ✅ |
-| POST /api/chatbot/message | ✅ (Azure OpenAI) |
+| POST /api/chatbot/message | ✅ (Azure OpenAI, returns message id) |
 | GET /api/chatbot/history | ✅ (returns ids) |
-| DELETE /api/chatbot/history | ✅ (clear all) |
-| DELETE /api/chatbot/history/{id} | ✅ (delete one) |
-| POST /api/chatbot/enhance | ✅ (AI expands brief input) |
+| DELETE /api/chatbot/history | ✅ (clear all, re-seeds opening) |
+| DELETE /api/chatbot/history/{id} | ✅ (delete one, ownership check) |
+| POST /api/chatbot/enhance | ✅ (AI expands brief input with context) |
 | POST /api/chatbot/upload | ✅ (PDF/DOCX/image/txt extraction) |
 | POST /api/chatbot/knowledge | ✅ |
 
@@ -329,3 +334,15 @@ The `OPENAI_API_KEY` is in `.env`. Never log it or commit it.
   - **Per-message delete**: hover any bubble to reveal red × button. Calls `DELETE /api/chatbot/history/{id}`.
   - **Clear all history**: button in ProfilePanel footer with confirmation step.
   - **Message IDs**: all messages carry `id` from backend for delete operations.
+
+### 2026-05-26 — Docs + CLAUDE.md Full Refresh + RunwayPage Discovery
+**Changes made:**
+- **RunwayPage.jsx** (discovered) — Developer financial runway tracker. Accessible via "Runway →" from AgenticWebPage. Fully client-side. Tracks income sources, expense categories, monthly history chart, AI insights, dev deals. Runway gauge (SVG semicircle). App.jsx routes `page='runway'`.
+- **App.jsx** — Auth confirmed bypassed: app starts at `'onboarding'` directly. Login/signup pages exist but commented out. Lazy loading on all non-auth pages.
+- **All docs updated to current state:**
+  - `docs/frontend.md` — Full rewrite. New pages section (Login/Signup/Chatbot/Onboarding/AgenticWeb/Timeline/Community/Runway). api.js table. Updated App.jsx routing. Lazy loading pattern. Removed stale "Backend Integration Points" section.
+  - `docs/api-reference.md` — Added: GET /posts/trending, DELETE /chatbot/history, DELETE /chatbot/history/{id}, POST /chatbot/enhance, POST /chatbot/upload. Updated GET /users/me (posts_count). Updated POST /simulate (structured JSON response).
+  - `docs/architecture.md` — Updated folder tree (RunwayPage, TimelinePage). Auth bypass noted. Simulation pipeline. File parsing stack.
+  - `docs/backend.md` — Added TrendingTagOut model, updated ChatMessageOut (id field), UserProfile (posts_count), EnhanceRequest/Response/UploadResponse models. New chatbot endpoints. Updated simulate_router (structured JSON + max_tokens=1500). Updated chatbot_service (enhance_content, extract_text_from_file). Updated frontend integration table (22 endpoints).
+  - `docs/setup.md` — Auth bypass noted. Section on re-enabling auth. Updated first-time flow (all 7 pages).
+  - `docs/improvements.md` — Updated gap analysis to reflect current state. Marks what's now built vs. still missing.

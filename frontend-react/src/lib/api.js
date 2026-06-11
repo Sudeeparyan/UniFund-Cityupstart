@@ -32,6 +32,8 @@ export const signup = (email, password, name) =>
 export const login = (email, password) =>
   request('POST', '/api/auth/login', { email, password });
 
+export const guestLogin = () => request('POST', '/api/auth/guest');
+
 // ── Users ─────────────────────────────────────────────────────────────────────
 export const getMe = () => request('GET', '/api/users/me');
 
