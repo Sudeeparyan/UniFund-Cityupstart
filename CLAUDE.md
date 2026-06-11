@@ -335,6 +335,17 @@ The `OPENAI_API_KEY` is in `.env`. Never log it or commit it.
   - **Clear all history**: button in ProfilePanel footer with confirmation step.
   - **Message IDs**: all messages carry `id` from backend for delete operations.
 
+### 2026-06-11 — Backend dependency install fix for Python 3.14/Windows
+**Problem solved:**
+- `requirements.txt` pinned `pydantic==2.7.0` and `pillow==10.4.0`, which forced source builds on the current Windows Python 3.14 environment and failed with `zlib` / `link.exe` build errors.
+
+**Changes made:**
+- Updated `backend-python/requirements.txt` to use wheel-compatible versions: `pydantic>=2.13.4` and `pillow>=12.2.0`.
+- Verified the fix with:
+  - `python -m pip install -r requirements.txt` → completed successfully
+  - `python -m pip check` → no broken requirements
+  - `python -c "import fastapi, pydantic, PIL, openai, dotenv, jose, passlib"` → `IMPORT_OK`
+
 ### 2026-05-26 — Docs + CLAUDE.md Full Refresh + RunwayPage Discovery
 **Changes made:**
 - **RunwayPage.jsx** (discovered) — Developer financial runway tracker. Accessible via "Runway →" from AgenticWebPage. Fully client-side. Tracks income sources, expense categories, monthly history chart, AI insights, dev deals. Runway gauge (SVG semicircle). App.jsx routes `page='runway'`.
