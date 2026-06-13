@@ -1215,7 +1215,7 @@ export default function ChatbotPage({ userName, onComplete, onSkip, onHome }) {
           </div>
 
           {/* Input area */}
-          <div className="flex-shrink-0 px-6 py-4" style={{ borderTop: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.02)' }}>
+          <div className="flex-shrink-0 px-6 pt-4" style={{ paddingBottom: 110, borderTop: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.02)' }}>
             <div className="flex justify-end mb-2 h-8">
               <XpToast xp={profile.chunks_saved * XP_PER_CHUNK} visible={showXpToast} key={xpToastKey} />
             </div>

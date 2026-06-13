@@ -103,6 +103,49 @@ export const uploadFile = async (file) => {
 export const saveKnowledge = (content, category) =>
   request('POST', '/api/chatbot/knowledge', { content, category });
 
+// ── Runway ────────────────────────────────────────────────────────────────────
+export const getRunwayProfile  = ()            => request('GET',    '/api/runway/profile');
+export const updateRunwayProfile = (balance)   => request('PUT',    '/api/runway/profile', { savings_balance: balance });
+
+export const getRunwayIncome   = ()            => request('GET',    '/api/runway/income');
+export const addRunwayIncome   = (body)        => request('POST',   '/api/runway/income', body);
+export const updateRunwayIncome = (id, body)   => request('PUT',    `/api/runway/income/${id}`, body);
+export const deleteRunwayIncome = (id)         => request('DELETE', `/api/runway/income/${id}`);
+
+export const getRunwayCategories = ()          => request('GET',    '/api/runway/categories');
+
+export const getRunwayTransactions = ()        => request('GET',    '/api/runway/transactions');
+
+export const getRunwayAccounts = ()            => request('GET',    '/api/runway/accounts');
+export const addRunwayAccount  = (body)        => request('POST',   '/api/runway/accounts', body);
+export const deleteRunwayAccount = (id)        => request('DELETE', `/api/runway/accounts/${id}`);
+
+export const getRunwayCharts   = ()            => request('GET',    '/api/runway/charts');
+
+export const generateTransactionTip = (merchant, category, amount, dateLabel) =>
+  request('POST', '/api/runway/tip', { merchant, category, amount, date_label: dateLabel });
+
+export const runRunwaySimulate = async (monthlyIncome, expenses) => {
+  const data = await request('POST', '/api/runway/simulate', {
+    monthly_income: monthlyIncome,
+    expenses: expenses.map(e => ({ id: e.id, label: e.label, amount: e.amount })),
+  });
+  // Map snake_case → camelCase to match the existing computePlan() shape
+  return {
+    monthlyIncome:  data.monthly_income,
+    totalSpend:     data.total_spend,
+    surplus:        data.surplus,
+    savingsActual:  data.savings_actual,
+    targetSavings:  data.target_savings,
+    split:          data.split,
+    recommendations: data.recommendations,
+    yearActual:     data.year_actual,
+    yearTarget:     data.year_target,
+    knowledgeCount: data.knowledge_count,
+    personalised:   data.personalised,
+  };
+};
+
 // ── Developer (unauthenticated login, then dev-token requests) ────────────────
 function getDevToken() {
   return localStorage.getItem('unifund_dev_token');

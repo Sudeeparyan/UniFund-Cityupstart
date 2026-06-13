@@ -118,6 +118,63 @@ CREATE TABLE IF NOT EXISTS enhance_logs (
     hallucinations TEXT DEFAULT '[]',
     created_at    TEXT DEFAULT (datetime('now'))
 );
+
+CREATE TABLE IF NOT EXISTS runway_profile (
+    user_id         TEXT PRIMARY KEY REFERENCES users(id),
+    savings_balance REAL DEFAULT 0,
+    updated_at      TEXT
+);
+
+CREATE TABLE IF NOT EXISTS runway_income_sources (
+    id         TEXT PRIMARY KEY,
+    user_id    TEXT NOT NULL REFERENCES users(id),
+    type       TEXT NOT NULL,
+    label      TEXT NOT NULL,
+    color      TEXT NOT NULL,
+    amount     REAL DEFAULT 0,
+    active     INTEGER DEFAULT 1,
+    created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS runway_categories (
+    id      TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(id),
+    label   TEXT NOT NULL,
+    spent   REAL DEFAULT 0,
+    budget  REAL DEFAULT 0,
+    color   TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS runway_transactions (
+    id         TEXT PRIMARY KEY,
+    user_id    TEXT NOT NULL REFERENCES users(id),
+    date_label TEXT NOT NULL,
+    merchant   TEXT NOT NULL,
+    category   TEXT NOT NULL,
+    color      TEXT NOT NULL,
+    amount     REAL NOT NULL,
+    ai_tip     TEXT NOT NULL,
+    created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS runway_bank_accounts (
+    id         TEXT PRIMARY KEY,
+    user_id    TEXT NOT NULL REFERENCES users(id),
+    bank       TEXT NOT NULL,
+    type       TEXT NOT NULL,
+    last4      TEXT NOT NULL,
+    balance    REAL DEFAULT 0,
+    accent     TEXT NOT NULL,
+    synced_mins INTEGER DEFAULT 0,
+    created_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS runway_chart_data (
+    user_id           TEXT PRIMARY KEY REFERENCES users(id),
+    daily_spend_json  TEXT NOT NULL,
+    runway_proj_json  TEXT NOT NULL,
+    updated_at        TEXT
+);
 """
 
 

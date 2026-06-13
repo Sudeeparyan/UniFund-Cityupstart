@@ -1002,7 +1002,7 @@ export default function CommunityPage({ userName = '', onBack, onHome }) {
           <PostComposer onPost={handlePost} />
 
           <div className="flex-1 overflow-y-auto pr-1"
-            style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.1) transparent' }}>
+            style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.1) transparent', paddingBottom: 110 }}>
             <motion.div
               variants={{ visible: { transition: { staggerChildren: 0.06 } } }}
               initial="hidden"

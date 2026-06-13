@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from db import create_tables
 from routers import auth_router, users_router, agents_router, posts_router
 from routers import simulate_router, network_router, achievements_router, chatbot_router, dev_router
+from routers import runway_router
 
 
 @asynccontextmanager
@@ -33,6 +34,7 @@ app.include_router(network_router.router,      prefix="/api",             tags=[
 app.include_router(achievements_router.router, prefix="/api",             tags=["achievements"])
 app.include_router(chatbot_router.router,      prefix="/api/chatbot",     tags=["chatbot"])
 app.include_router(dev_router.router,          prefix="/api/dev",         tags=["developer"])
+app.include_router(runway_router.router,       prefix="/api/runway",      tags=["runway"])
 
 
 @app.get("/api/health")

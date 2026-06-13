@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef, Fragment } from 'react';
 import { motion, AnimatePresence, useMotionValue, useSpring } from 'framer-motion';
+import { runRunwaySimulate, generateTransactionTip } from '../lib/api';
 
 // ── Design tokens (exact Mytasky palette) ─────────────────────────────────────
 const BG   = '#111118';
@@ -253,7 +254,7 @@ function ToolCard({ source }) {
           {source.label} +
         </div>
         <div style={{ fontSize:11, color:'rgba(255,255,255,0.35)',
-          fontFamily:"'JetBrains Mono',monospace" }}>
+          fontFamily:"Inter,sans-serif" }}>
           €{source.amount.toLocaleString()}/mo
         </div>
       </div>
@@ -334,7 +335,7 @@ function BalanceCard({ savings, userName, editSavings, savingsInput, setSavingsI
         </div>
         {editSavings ? (
           <div style={{ display:'flex', alignItems:'baseline', gap:5 }}>
-            <span style={{ fontSize:16, color:'rgba(255,255,255,0.35)', fontFamily:"'JetBrains Mono',monospace" }}>€</span>
+            <span style={{ fontSize:16, color:'rgba(255,255,255,0.35)', fontFamily:"Inter,sans-serif" }}>€</span>
             <input type="number" value={savingsInput}
               onChange={e => setSavingsInput(Number(e.target.value))}
               onKeyDown={e => { if(e.key==='Enter'){ setSavings(savingsInput); setEditSavings(false); }}}
@@ -342,7 +343,7 @@ function BalanceCard({ savings, userName, editSavings, savingsInput, setSavingsI
               style={{ background:'transparent', border:'none',
                 borderBottom:'1px solid rgba(255,255,255,0.35)', outline:'none',
                 color:'white', fontSize:28, fontWeight:700,
-                fontFamily:"'JetBrains Mono',monospace", width:140, letterSpacing:'-0.02em' }} />
+                fontFamily:"Inter,sans-serif", width:140, letterSpacing:'-0.02em' }} />
             <button onClick={() => { setSavings(savingsInput); setEditSavings(false); }}
               style={{ fontSize:10, padding:'3px 10px', borderRadius:6,
                 background:'rgba(255,255,255,0.16)', color:'white',
@@ -354,7 +355,7 @@ function BalanceCard({ savings, userName, editSavings, savingsInput, setSavingsI
           <button onClick={() => { setSavingsInput(savings); setEditSavings(true); }}
             style={{ background:'none', border:'none', cursor:'pointer', padding:0 }}>
             <div style={{ fontSize:30, fontWeight:700, color:'white',
-              letterSpacing:'-0.025em', fontFamily:"'JetBrains Mono',monospace",
+              letterSpacing:'-0.025em', fontFamily:"Inter,sans-serif",
               lineHeight:1, textShadow:'0 2px 10px rgba(80,160,255,0.3)' }}>
               €{savings.toLocaleString()}
             </div>
@@ -397,7 +398,7 @@ function SpendingChart({ data, activeIdx, onHover }) {
               <div style={{ height:18, display:'flex', alignItems:'center', marginBottom:4 }}>
                 {isActive && (
                   <span style={{ fontSize:9, color:ORG, fontWeight:700,
-                    fontFamily:"'JetBrains Mono',monospace", whiteSpace:'nowrap' }}>
+                    fontFamily:"Inter,sans-serif", whiteSpace:'nowrap' }}>
                     €{val}
                   </span>
                 )}
@@ -472,10 +473,10 @@ function CategoryTable({ categories }) {
               {sLbl}
             </span>
             <span style={{ fontSize:11, color:'rgba(255,255,255,0.32)',
-              fontFamily:"'JetBrains Mono',monospace" }}>€{cat.budget}</span>
+              fontFamily:"Inter,sans-serif" }}>€{cat.budget}</span>
             <span style={{ fontSize:11, fontWeight:600,
               color: over ? '#F87171' : 'rgba(255,255,255,0.76)',
-              fontFamily:"'JetBrains Mono',monospace" }}>€{cat.spent}</span>
+              fontFamily:"Inter,sans-serif" }}>€{cat.spent}</span>
             <button style={{ width:28, height:28, borderRadius:'50%', border:'none',
               cursor:'pointer', background:'rgba(255,255,255,0.07)',
               color:'rgba(255,255,255,0.45)', display:'flex', alignItems:'center',
@@ -594,7 +595,7 @@ function RunwayCard({ runway, savings, totalSpend, totalIncome, surplus }) {
       <div style={{ display:'flex', alignItems:'flex-start', gap:16, marginBottom:12 }}>
         <div>
           <div style={{ fontSize:60, fontWeight:700, color:'white', lineHeight:1,
-            fontFamily:"'JetBrains Mono',monospace", letterSpacing:'-0.04em' }}>
+            fontFamily:"Inter,sans-serif", letterSpacing:'-0.04em' }}>
             {clampedRunway >= 12 ? '12+' : Math.round(clampedRunway)}
           </div>
           <div style={{ fontSize:11, color:'rgba(255,255,255,0.3)', marginTop:3 }}>months left</div>
@@ -613,7 +614,7 @@ function RunwayCard({ runway, savings, totalSpend, totalIncome, surplus }) {
         <div style={{ display:'flex', flexDirection:'column', justifyContent:'space-between', paddingBottom:2 }}>
           {[40,30,20,10].map(v => (
             <span key={v} style={{ fontSize:9, color:'rgba(255,255,255,0.2)',
-              fontFamily:"'JetBrains Mono',monospace" }}>{v}</span>
+              fontFamily:"Inter,sans-serif" }}>{v}</span>
           ))}
         </div>
         <div style={{ flex:1, position:'relative' }}>
@@ -650,7 +651,7 @@ function CategoryBar({ cat, delay }) {
       <div className="flex-1">
         <div className="flex justify-between mb-1">
           <span className="text-[11px]" style={{ color:'rgba(255,255,255,0.65)' }}>{cat.label}</span>
-          <span className="text-[11px]" style={{ color: over ? '#F87171' : 'rgba(255,255,255,0.5)', fontFamily:"'JetBrains Mono',monospace" }}>
+          <span className="text-[11px]" style={{ color: over ? '#F87171' : 'rgba(255,255,255,0.5)', fontFamily:"Inter,sans-serif" }}>
             €{cat.spent} <span style={{ color:'rgba(255,255,255,0.25)' }}>/ €{cat.budget}</span>
           </span>
         </div>
@@ -670,7 +671,7 @@ function BudgetSlider({ label, value, min, max, step, onChange, color, prefix='�
     <div className="space-y-2">
       <div className="flex justify-between">
         <span className="text-[11px]" style={{ color:'rgba(255,255,255,0.5)' }}>{label}</span>
-        <span className="text-[12px] font-semibold" style={{ color, fontFamily:"'JetBrains Mono',monospace" }}>{prefix}{value.toLocaleString()}/mo</span>
+        <span className="text-[12px] font-semibold" style={{ color, fontFamily:"Inter,sans-serif" }}>{prefix}{value.toLocaleString()}/mo</span>
       </div>
       <input type="range" min={min} max={max} step={step} value={value}
         onChange={e => onChange(Number(e.target.value))}
@@ -698,19 +699,19 @@ function IncomeSourceCard({ source, onToggle, onEdit, onDelete }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-0.5">
             <span className="text-[12px] font-medium" style={{ color: source.active ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.35)' }}>{source.label}</span>
-            {source.active && <span className="text-[8px] px-1.5 py-0.5 rounded" style={{ background:`${source.color}20`, color:source.color, fontFamily:"'JetBrains Mono',monospace" }}>ACTIVE</span>}
+            {source.active && <span className="text-[8px] px-1.5 py-0.5 rounded" style={{ background:`${source.color}20`, color:source.color, fontFamily:"Inter,sans-serif" }}>ACTIVE</span>}
           </div>
           {editing ? (
             <div className="flex items-center gap-2 mt-1">
-              <span className="text-[11px]" style={{ color:'rgba(255,255,255,0.4)', fontFamily:"'JetBrains Mono',monospace" }}>€</span>
+              <span className="text-[11px]" style={{ color:'rgba(255,255,255,0.4)', fontFamily:"Inter,sans-serif" }}>€</span>
               <input type="number" value={editVal} onChange={e => setEditVal(e.target.value)}
-                className="w-24 bg-transparent text-[12px] outline-none text-white" style={{ borderBottom:'1px solid rgba(255,255,255,0.2)', fontFamily:"'JetBrains Mono',monospace" }}
+                className="w-24 bg-transparent text-[12px] outline-none text-white" style={{ borderBottom:'1px solid rgba(255,255,255,0.2)', fontFamily:"Inter,sans-serif" }}
                 onKeyDown={e => e.key==='Enter' && commit()} autoFocus />
               <button onClick={commit} className="text-[10px] px-2 py-0.5 rounded" style={{ background:`${source.color}25`, color:source.color }}>Save</button>
               <button onClick={() => setEditing(false)} className="text-[10px]" style={{ color:'rgba(255,255,255,0.3)' }}>×</button>
             </div>
           ) : (
-            <span className="text-[11px]" style={{ color: source.active ? source.color : 'rgba(255,255,255,0.25)', fontFamily:"'JetBrains Mono',monospace" }}>
+            <span className="text-[11px]" style={{ color: source.active ? source.color : 'rgba(255,255,255,0.25)', fontFamily:"Inter,sans-serif" }}>
               {source.amount > 0 ? `€${source.amount.toLocaleString()}/mo` : 'Not set — click Edit'}
             </span>
           )}
@@ -747,7 +748,7 @@ function AddSourcePanel({ onAdd, onClose }) {
       className="rounded-2xl px-5 py-5"
       style={{ background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.1)', backdropFilter:'blur(20px)' }}>
       <div className="flex justify-between items-center mb-4">
-        <div className="text-[9px] tracking-[0.2em]" style={{ color:'rgba(255,255,255,0.4)', fontFamily:"'JetBrains Mono',monospace" }}>ADD INCOME SOURCE</div>
+        <div className="text-[9px] tracking-[0.2em]" style={{ color:'rgba(255,255,255,0.4)', fontFamily:"Inter,sans-serif" }}>ADD INCOME SOURCE</div>
         <button onClick={onClose} className="text-lg opacity-40 hover:opacity-70 text-white">×</button>
       </div>
       <div className="space-y-4">
@@ -776,11 +777,11 @@ function AddSourcePanel({ onAdd, onClose }) {
           <input type="number" value={form.amount} onChange={e => setForm(f => ({ ...f, amount:e.target.value }))}
             placeholder="e.g. 500"
             className="w-full rounded-lg px-3 py-2 text-[12px] text-white outline-none"
-            style={{ border:'1px solid rgba(255,255,255,0.12)', background:'rgba(255,255,255,0.03)', fontFamily:"'JetBrains Mono',monospace" }} />
+            style={{ border:'1px solid rgba(255,255,255,0.12)', background:'rgba(255,255,255,0.03)', fontFamily:"Inter,sans-serif" }} />
         </div>
         <motion.button onClick={handleAdd} whileHover={{ scale:1.02 }} whileTap={{ scale:0.98 }}
           className="w-full py-2.5 rounded-xl text-[11px] tracking-widest"
-          style={{ background:form.label&&form.amount?`linear-gradient(135deg,${selType?.color}25,${selType?.color}12)`:'rgba(255,255,255,0.04)', border:`1px solid ${form.label&&form.amount?`${selType?.color}40`:'rgba(255,255,255,0.08)'}`, color:form.label&&form.amount?selType?.color:'rgba(255,255,255,0.25)', fontFamily:"'JetBrains Mono',monospace" }}>
+          style={{ background:form.label&&form.amount?`linear-gradient(135deg,${selType?.color}25,${selType?.color}12)`:'rgba(255,255,255,0.04)', border:`1px solid ${form.label&&form.amount?`${selType?.color}40`:'rgba(255,255,255,0.08)'}`, color:form.label&&form.amount?selType?.color:'rgba(255,255,255,0.25)', fontFamily:"Inter,sans-serif" }}>
           + ADD SOURCE
         </motion.button>
       </div>
@@ -790,13 +791,14 @@ function AddSourcePanel({ onAdd, onClose }) {
 
 // ── AI Insight Panel ──────────────────────────────────────────────────────────
 
-function AIInsightPanel({ tip }) {
+function AIInsightPanel({ tip, loading = false, personalised = false }) {
   const [displayed, setDisplayed] = useState('');
   const [cursor,    setCursor]    = useState(true);
   const [done,      setDone]      = useState(false);
 
-  // Typewriter effect — re-runs every time tip changes (new transaction opened)
+  // Typewriter effect — re-runs every time tip changes or loading clears
   useEffect(() => {
+    if (loading || !tip) { setDisplayed(''); setDone(false); return; }
     setDisplayed('');
     setDone(false);
     let i = 0;
@@ -806,7 +808,7 @@ function AIInsightPanel({ tip }) {
       if (i >= tip.length) { setDone(true); clearInterval(timer); }
     }, 14);
     return () => clearInterval(timer);
-  }, [tip]);
+  }, [tip, loading]);
 
   // Blinking cursor while typing
   useEffect(() => {
@@ -815,8 +817,7 @@ function AIInsightPanel({ tip }) {
     return () => clearInterval(t);
   }, [done]);
 
-  // Pull out any "save €X" / "saves ~€X" mention for the highlight badge
-  const m = tip.match(/save[sd]?\s*~?€[\d,.]+(\/mo)?/i);
+  const m = !loading && tip ? tip.match(/save[sd]?\s*~?€[\d,.]+(\/mo)?/i) : null;
 
   return (
     <div style={{ margin:'12px 0 10px 0px', borderRadius:12, overflow:'hidden',
@@ -837,6 +838,12 @@ function AIInsightPanel({ tip }) {
               fontSize:10, color:'white' }}>✦</div>
             <span style={{ fontSize:10, fontWeight:700, letterSpacing:'0.12em',
               color:'rgba(255,255,255,0.5)' }}>AI ANALYST</span>
+            {personalised && !loading && (
+              <span style={{ fontSize:8, padding:'2px 6px', borderRadius:10, fontWeight:700,
+                letterSpacing:'0.06em', color:'#22D3EE',
+                background:'rgba(34,211,238,0.1)', border:'1px solid rgba(34,211,238,0.25)',
+                fontFamily:"Inter,sans-serif" }}>PERSONALISED</span>
+            )}
           </div>
           {m && (
             <span style={{ fontSize:10, fontWeight:700, color:GRN,
@@ -847,16 +854,29 @@ function AIInsightPanel({ tip }) {
           )}
         </div>
 
-        {/* Typewriter body */}
-        <p style={{ fontSize:12, color:'rgba(255,255,255,0.7)', lineHeight:1.72,
-          margin:0, minHeight:36 }}>
-          {displayed}
-          {!done && cursor && (
-            <span style={{ display:'inline-block', width:2, height:13,
-              background:PUR, marginLeft:1, verticalAlign:'middle',
-              borderRadius:1 }} />
-          )}
-        </p>
+        {/* Loading dots or typewriter body */}
+        {loading ? (
+          <div style={{ display:'flex', alignItems:'center', gap:5, padding:'10px 0 8px' }}>
+            {[0, 1, 2].map(i => (
+              <motion.div key={i}
+                animate={{ opacity:[0.25, 1, 0.25], y:[0, -4, 0] }}
+                transition={{ repeat:Infinity, duration:0.85, delay:i * 0.2, ease:'easeInOut' }}
+                style={{ width:6, height:6, borderRadius:'50%', background:PUR }} />
+            ))}
+            <span style={{ fontSize:10, color:'rgba(255,255,255,0.28)',
+              marginLeft:4, fontStyle:'italic' }}>Analysing…</span>
+          </div>
+        ) : (
+          <p style={{ fontSize:12, color:'rgba(255,255,255,0.7)', lineHeight:1.72,
+            margin:0, minHeight:36 }}>
+            {displayed}
+            {!done && cursor && (
+              <span style={{ display:'inline-block', width:2, height:13,
+                background:PUR, marginLeft:1, verticalAlign:'middle',
+                borderRadius:1 }} />
+            )}
+          </p>
+        )}
 
         {/* Feedback row */}
         <div style={{ display:'flex', gap:6, marginTop:10 }}>
@@ -879,7 +899,26 @@ function AIInsightPanel({ tip }) {
 // ── Spending History (Revolut-style transaction feed) ─────────────────────────
 
 function SpendingHistory() {
-  const [expanded, setExpanded] = useState(null);
+  const [expanded,    setExpanded]    = useState(null);
+  const [tipCache,    setTipCache]    = useState({});   // { txnId: { tip, personalised } }
+  const [loadingTip,  setLoadingTip]  = useState(null); // txn id currently fetching
+
+  const handleExpand = async (t) => {
+    const isOpen = expanded === t.id;
+    setExpanded(isOpen ? null : t.id);
+    if (isOpen || tipCache[t.id]) return; // collapse or already cached
+
+    setLoadingTip(t.id);
+    try {
+      const res = await generateTransactionTip(t.merchant, t.category, t.amount, t.date);
+      setTipCache(c => ({ ...c, [t.id]: { tip: res.tip, personalised: res.personalised } }));
+    } catch {
+      // Fallback to the static seed tip
+      setTipCache(c => ({ ...c, [t.id]: { tip: t.ai_tip, personalised: false } }));
+    } finally {
+      setLoadingTip(null);
+    }
+  };
 
   const groups = TRANSACTIONS.reduce((acc, t) => {
     if (!acc[t.date]) acc[t.date] = [];
@@ -897,12 +936,14 @@ function SpendingHistory() {
             {date}
           </div>
           {txns.map(t => {
-            const isOpen = expanded === t.id;
+            const isOpen    = expanded === t.id;
+            const cached    = tipCache[t.id];
+            const isLoading = loadingTip === t.id;
             return (
               <div key={t.id} style={{ borderBottom:'1px solid rgba(255,255,255,0.04)' }}>
                 {/* Transaction row */}
                 <div
-                  onClick={() => setExpanded(isOpen ? null : t.id)}
+                  onClick={() => handleExpand(t)}
                   style={{ display:'flex', alignItems:'center', gap:12, padding:'9px 0',
                     cursor:'pointer', borderRadius:8, transition:'background 0.15s',
                     background: isOpen ? 'rgba(139,92,246,0.06)' : 'transparent' }}
@@ -931,7 +972,7 @@ function SpendingHistory() {
                   {/* Amount + expand caret */}
                   <div style={{ flexShrink:0, textAlign:'right', display:'flex', alignItems:'center', gap:8 }}>
                     <div style={{ fontSize:13, fontWeight:700,
-                      fontFamily:"'JetBrains Mono',monospace",
+                      fontFamily:"Inter,sans-serif",
                       color: t.amount > 0 ? GRN : 'rgba(255,255,255,0.82)' }}>
                       {t.amount > 0 ? '+' : '-'}€{Math.abs(t.amount).toFixed(2)}
                     </div>
@@ -950,7 +991,11 @@ function SpendingHistory() {
                       exit={{ opacity:0, height:0 }}
                       transition={{ duration:0.22 }}
                       style={{ overflow:'hidden' }}>
-                      <AIInsightPanel tip={t.ai_tip} />
+                      <AIInsightPanel
+                        tip={cached?.tip ?? ''}
+                        loading={isLoading}
+                        personalised={cached?.personalised ?? false}
+                      />
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -1334,7 +1379,7 @@ function BankCard({ account, onUnlink }) {
 
         {/* Masked number */}
         <div style={{ fontSize:14, color:'rgba(255,255,255,0.62)',
-          fontFamily:"'JetBrains Mono',monospace", letterSpacing:'0.18em' }}>
+          fontFamily:"Inter,sans-serif", letterSpacing:'0.18em' }}>
           •••• •••• •••• {account.last4}
         </div>
 
@@ -1351,7 +1396,7 @@ function BankCard({ account, onUnlink }) {
             <div style={{ fontSize:8, color:'rgba(255,255,255,0.36)', letterSpacing:'0.1em',
               textTransform:'uppercase', marginBottom:3 }}>Balance</div>
             <div style={{ fontSize:15, fontWeight:700, color:'white',
-              fontFamily:"'JetBrains Mono',monospace", letterSpacing:'-0.01em' }}>
+              fontFamily:"Inter,sans-serif", letterSpacing:'-0.01em' }}>
               €{account.balance.toLocaleString('en',{minimumFractionDigits:2})}
             </div>
           </div>
@@ -1679,9 +1724,11 @@ export default function RunwayPage({ userName = 'USER' }) {
   const [simExpenses, setSimExpenses]     = useState(
     INIT_CATEGORIES.map(c => ({ id:c.id, label:c.label, icon:c.icon, amount:c.spent, color:c.color }))
   );
-  const [simStep, setSimStep]         = useState(1); // 1 | 2 | 'generating' | 3
+  const [simStep, setSimStep]           = useState(1); // 1 | 2 | 'generating' | 3
   const [simDirection, setSimDirection] = useState(1);
-  const [simPlan, setSimPlan]         = useState(null);
+  const [simPlan, setSimPlan]           = useState(null);
+  const [simPersonalised, setSimPersonalised] = useState(false);
+  const simPromiseRef = useRef(null);
 
   const totalIncome = useMemo(() => sources.filter(s => s.active).reduce((sum, s) => sum + s.amount, 0), [sources]);
   const totalSpend  = useMemo(() => categories.reduce((sum, c) => sum + c.spent, 0), [categories]);
@@ -1699,7 +1746,12 @@ export default function RunwayPage({ userName = 'USER' }) {
     simPayAmount;
 
   const goSimStep = (next, dir = 1) => { setSimDirection(dir); setSimStep(next); };
-  const startSimulate = () => { setSimDirection(1); setSimStep('generating'); };
+  const startSimulate = () => {
+    setSimDirection(1);
+    setSimStep('generating');
+    // Fire API call in parallel with the animation; store the promise for onDone to await
+    simPromiseRef.current = runRunwaySimulate(simMonthlyIncome, simExpenses).catch(() => null);
+  };
   const overspend = categories.filter(c => c.spent > c.budget);
 
   useEffect(() => {
@@ -1717,15 +1769,33 @@ export default function RunwayPage({ userName = 'USER' }) {
 
   return (
     <div style={{ display:'flex', width:'100vw', height:'100vh', overflow:'hidden',
-      background:BG, fontFamily:'Manrope,sans-serif', position:'relative' }}>
+      background:BG, fontFamily:'Inter,sans-serif', fontVariantNumeric:'tabular-nums', position:'relative' }}>
 
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
 
       {/* Main */}
       <div style={{ flex:1, display:'flex', flexDirection:'column', overflow:'hidden' }}>
 
+        {/* Greeting header */}
+        <div style={{ padding:'28px 28px 0', flexShrink:0, display:'flex', justifyContent:'space-between', alignItems:'flex-end' }}>
+          <div>
+            <div style={{ fontSize:11, color:'rgba(255,255,255,0.35)', letterSpacing:'0.1em', textTransform:'uppercase', fontWeight:500, marginBottom:4 }}>
+              {(() => {
+                const h = new Date().getHours();
+                return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
+              })()}
+            </div>
+            <div style={{ fontSize:28, fontWeight:700, color:'white', letterSpacing:'-0.02em', lineHeight:1 }}>
+              {userName || 'there'}
+            </div>
+          </div>
+          <span style={{ fontSize:11, color:'rgba(255,255,255,0.22)', letterSpacing:'0.04em', paddingBottom:3 }}>
+            {new Date().toLocaleDateString('en-GB', { weekday:'short', day:'numeric', month:'short', year:'numeric' })}
+          </span>
+        </div>
+
         {/* Tool cards row */}
-        <div style={{ padding:'20px 28px 14px', display:'flex', gap:10, overflowX:'auto',
+        <div style={{ padding:'14px 28px 14px', display:'flex', gap:10, overflowX:'auto',
           flexShrink:0, scrollbarWidth:'none' }}>
           {sources.filter(s => s.active && s.amount > 0).map(src => (
             <ToolCard key={src.id} source={src} />
@@ -1734,7 +1804,7 @@ export default function RunwayPage({ userName = 'USER' }) {
         </div>
 
         {/* Content */}
-        <div style={{ flex:1, overflowY:'auto', padding:'0 28px 28px',
+        <div style={{ flex:1, overflowY:'auto', padding:'0 28px 110px',
           scrollbarWidth:'thin', scrollbarColor:'rgba(139,92,246,0.2) transparent' }}>
           <AnimatePresence mode="wait">
 
@@ -1932,12 +2002,12 @@ export default function RunwayPage({ userName = 'USER' }) {
                           </div>
                           <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}>
                             <span style={{ fontSize:28, color:'rgba(255,255,255,0.2)',
-                              fontFamily:"'JetBrains Mono',monospace", lineHeight:1 }}>€</span>
+                              fontFamily:"Inter,sans-serif", lineHeight:1 }}>€</span>
                             <input type="number" value={simPayAmount}
                               onChange={e => setSimPayAmount(Number(e.target.value))}
                               style={{ background:'transparent', border:'none', outline:'none',
                                 fontSize:52, fontWeight:700, color:'white', width:200,
-                                textAlign:'center', fontFamily:"'JetBrains Mono',monospace",
+                                textAlign:'center', fontFamily:"Inter,sans-serif",
                                 letterSpacing:'-0.04em' }} />
                           </div>
                           {simPayFreq !== 'monthly' && (
@@ -1996,7 +2066,7 @@ export default function RunwayPage({ userName = 'USER' }) {
                               </span>
                               <div style={{ display:'flex', alignItems:'center', gap:4 }}>
                                 <span style={{ fontSize:12, color:'rgba(255,255,255,0.2)',
-                                  fontFamily:"'JetBrains Mono',monospace" }}>€</span>
+                                  fontFamily:"Inter,sans-serif" }}>€</span>
                                 <input type="number" value={expense.amount}
                                   onChange={e => setSimExpenses(prev =>
                                     prev.map(x => x.id===expense.id ? {...x, amount:Number(e.target.value)} : x)
@@ -2004,7 +2074,7 @@ export default function RunwayPage({ userName = 'USER' }) {
                                   style={{ width:64, background:'transparent', border:'none',
                                     borderBottom:'1px solid rgba(255,255,255,0.14)', outline:'none',
                                     fontSize:13, fontWeight:600, color:'white', textAlign:'right',
-                                    fontFamily:"'JetBrains Mono',monospace", padding:'2px 0' }} />
+                                    fontFamily:"Inter,sans-serif", padding:'2px 0' }} />
                               </div>
                             </div>
                           ))}
@@ -2016,7 +2086,7 @@ export default function RunwayPage({ userName = 'USER' }) {
                           background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.05)' }}>
                           <span style={{ fontSize:12, color:'rgba(255,255,255,0.38)' }}>Total spending</span>
                           <span style={{ fontSize:13, fontWeight:700, color:'white',
-                            fontFamily:"'JetBrains Mono',monospace" }}>
+                            fontFamily:"Inter,sans-serif" }}>
                             €{simExpenses.reduce((s,e)=>s+e.amount,0).toLocaleString()}/mo
                           </span>
                         </div>
@@ -2048,8 +2118,17 @@ export default function RunwayPage({ userName = 'USER' }) {
                         initial={{ scale:0.96, opacity:0 }}
                         animate={{ scale:1, opacity:1, transition:{ duration:0.3 } }}
                         exit={{ scale:1.02, opacity:0, transition:{ duration:0.2 } }}>
-                        <GeneratingStep onDone={() => {
-                          setSimPlan(computePlan(simMonthlyIncome, simExpenses));
+                        <GeneratingStep onDone={async () => {
+                          const apiPlan = simPromiseRef.current
+                            ? await simPromiseRef.current
+                            : null;
+                          if (apiPlan) {
+                            setSimPlan(apiPlan);
+                            setSimPersonalised(apiPlan.personalised ?? false);
+                          } else {
+                            setSimPlan(computePlan(simMonthlyIncome, simExpenses));
+                            setSimPersonalised(false);
+                          }
                           goSimStep(3, 1);
                         }} />
                       </motion.div>
@@ -2066,13 +2145,30 @@ export default function RunwayPage({ userName = 'USER' }) {
 
                         {/* Header */}
                         <div style={{ textAlign:'center', marginBottom:8 }}>
-                          <div style={{ fontSize:22, fontWeight:600, color:'white',
-                            letterSpacing:'-0.02em', marginBottom:6 }}>
-                            Your Savings Plan
+                          <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, marginBottom:6 }}>
+                            <div style={{ fontSize:22, fontWeight:600, color:'white', letterSpacing:'-0.02em' }}>
+                              Your Savings Plan
+                            </div>
+                            {simPersonalised && (
+                              <motion.span
+                                initial={{ opacity:0, scale:0.8 }} animate={{ opacity:1, scale:1 }}
+                                transition={{ delay:0.3, duration:0.3 }}
+                                style={{ fontSize:9, padding:'3px 9px', borderRadius:20, fontWeight:700,
+                                  letterSpacing:'0.08em', background:'linear-gradient(135deg,rgba(34,211,238,0.18),rgba(139,92,246,0.18))',
+                                  border:'1px solid rgba(34,211,238,0.35)', color:'#22D3EE',
+                                  fontFamily:"Inter,sans-serif" }}>
+                                ✦ AI PERSONALISED
+                              </motion.span>
+                            )}
                           </div>
                           <div style={{ fontSize:12, color:'rgba(255,255,255,0.32)' }}>
                             Based on €{simPlan.monthlyIncome.toLocaleString()}/mo income
                             · €{simPlan.totalSpend.toLocaleString()}/mo spending
+                            {simPersonalised && simPlan.knowledgeCount > 0 && (
+                              <span style={{ color:'rgba(34,211,238,0.6)', marginLeft:4 }}>
+                                · {simPlan.knowledgeCount} context signal{simPlan.knowledgeCount !== 1 ? 's' : ''}
+                              </span>
+                            )}
                           </div>
                         </div>
 
@@ -2091,7 +2187,7 @@ export default function RunwayPage({ userName = 'USER' }) {
                               <div key={item.label} style={{ marginBottom:14 }}>
                                 <div style={{ display:'flex', justifyContent:'space-between', marginBottom:6 }}>
                                   <span style={{ fontSize:12, color:'rgba(255,255,255,0.52)' }}>{item.label}</span>
-                                  <span style={{ fontSize:12, fontFamily:"'JetBrains Mono',monospace",
+                                  <span style={{ fontSize:12, fontFamily:"Inter,sans-serif",
                                     color:'rgba(255,255,255,0.7)' }}>
                                     €{item.amount} · {pct}%
                                   </span>
@@ -2145,7 +2241,7 @@ export default function RunwayPage({ userName = 'USER' }) {
                               </div>
                               {rec.impact > 0 && (
                                 <div style={{ flexShrink:0, fontSize:13, fontWeight:700,
-                                  color:GRN, fontFamily:"'JetBrains Mono',monospace", paddingTop:2 }}>
+                                  color:GRN, fontFamily:"Inter,sans-serif", paddingTop:2 }}>
                                   +€{rec.impact}/mo
                                 </div>
                               )}
@@ -2170,7 +2266,7 @@ export default function RunwayPage({ userName = 'USER' }) {
                             <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }}
                               transition={{ delay:0.7 }}
                               style={{ fontSize:28, fontWeight:700, color:GRN, lineHeight:1,
-                                fontFamily:"'JetBrains Mono',monospace", letterSpacing:'-0.03em' }}>
+                                fontFamily:"Inter,sans-serif", letterSpacing:'-0.03em' }}>
                               €{simPlan.yearTarget.toLocaleString()}
                             </motion.div>
                             <div style={{ fontSize:10, color:'rgba(255,255,255,0.25)', marginTop:3 }}>
@@ -2188,7 +2284,7 @@ export default function RunwayPage({ userName = 'USER' }) {
                               fontSize:12, color:'rgba(255,255,255,0.45)' }}>
                             ← Adjust spending
                           </button>
-                          <button onClick={() => { setSimPlan(null); goSimStep(1, -1); }}
+                          <button onClick={() => { setSimPlan(null); setSimPersonalised(false); goSimStep(1, -1); }}
                             style={{ flex:1, padding:'11px', borderRadius:10, cursor:'pointer',
                               background:'rgba(255,255,255,0.04)',
                               border:'1px solid rgba(255,255,255,0.08)', fontFamily:'inherit',
@@ -2297,7 +2393,7 @@ export default function RunwayPage({ userName = 'USER' }) {
                                 </div>
                                 <span style={{ fontSize:8, padding:'3px 8px', borderRadius:6,
                                   background:`${tagClr}15`, color:tagClr,
-                                  fontFamily:"'JetBrains Mono',monospace", fontWeight:700,
+                                  fontFamily:"Inter,sans-serif", fontWeight:700,
                                   letterSpacing:'0.06em' }}>
                                   {deal.tag}
                                 </span>
