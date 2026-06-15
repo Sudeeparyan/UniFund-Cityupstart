@@ -1,9 +1,7 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import DeveloperLoginPage from './pages/DeveloperLoginPage';
-import LoginPage  from './pages/LoginPage';
-import SignupPage from './pages/SignupPage';
-import { getMe, saveOnboarding } from './lib/api';
+import { guestLogin, getMe, saveOnboarding } from './lib/api';
 
 const OnboardingPage  = lazy(() => import('./pages/OnboardingPage'));
 const ChatbotPage     = lazy(() => import('./pages/ChatbotPage'));
@@ -40,7 +38,7 @@ function BottomNav({ active, onNavigate }) {
       style={{
         position: 'fixed',
         bottom: 36,
-        left: '40%',
+        left: '50%',
         transform: 'translateX(-50%)',
         zIndex: 1000,
         background: '#12121e',
@@ -133,45 +131,40 @@ const MAIN_TABS = ['runway', 'web', 'chatbot', 'community'];
 
 export default function App() {
   const isDeveloperRoute = window.location.pathname === '/developer';
-  // page: 'login' | 'signup' | 'developer-login' | 'developer' |
-  //       'onboarding' | 'transitioning' |
-  //       'runway' | 'web' | 'chatbot' | 'community' | 'timeline'
-  const [page, setPage] = useState(isDeveloperRoute ? 'developer-login' : 'login');
+  // page: 'onboarding' | 'transitioning' | 'web' | 'chatbot' | 'community' | 'timeline' | 'runway' | 'developer-login' | 'developer'
+  // Start directly at onboarding — no login required. Guest token obtained silently.
+  const [page, setPage] = useState(isDeveloperRoute ? 'developer-login' : 'onboarding');
   const [bridgePhase, setBridgePhase] = useState('idle');
   const [isExiting, setIsExiting] = useState(false);
   const [userName, setUserName] = useState('USER');
-  const [authUser, setAuthUser] = useState(null);
   const [simulationData, setSimulationData] = useState(null);
   const [simulationKnowledgeCount, setSimulationKnowledgeCount] = useState(null);
-  const [chatbotCompleteTarget, setChatbotCompleteTarget] = useState('onboarding');
+  const [chatbotCompleteTarget, setChatbotCompleteTarget] = useState('web');
 
+  // Silently obtain a guest token so all API calls work without login
   useEffect(() => {
     if (isDeveloperRoute) return;
-    const token = localStorage.getItem('unifund_token');
-    if (!token) return;
-    getMe()
-      .then(user => {
-        setAuthUser(user);
-        setUserName(user.name.toUpperCase());
-        setChatbotCompleteTarget('runway');
-        setPage('runway');
-      })
-      .catch(() => localStorage.removeItem('unifund_token'));
+    async function ensureToken() {
+      const existing = localStorage.getItem('unifund_token');
+      if (existing) {
+        try {
+          const user = await getMe();
+          if (user?.name) setUserName(user.name.toUpperCase());
+          return;
+        } catch {
+          localStorage.removeItem('unifund_token');
+        }
+      }
+      try {
+        const { access_token, name } = await guestLogin();
+        localStorage.setItem('unifund_token', access_token);
+        if (name) setUserName(name.toUpperCase());
+      } catch (e) {
+        console.warn('Guest login failed — backend may be down:', e.message);
+      }
+    }
+    ensureToken();
   }, []);
-
-  function handleLoginSuccess(user) {
-    setAuthUser(user);
-    setUserName(user.name.toUpperCase());
-    setChatbotCompleteTarget('runway');
-    setPage('runway');
-  }
-
-  function handleSignupSuccess(user) {
-    setAuthUser(user);
-    setUserName(user.name.toUpperCase());
-    setChatbotCompleteTarget('onboarding');
-    setPage('chatbot');
-  }
 
   async function handleEnter(answers) {
     if (answers) {
@@ -182,24 +175,20 @@ export default function App() {
     setPage('transitioning');
     setTimeout(() => setBridgePhase('shrink-out'), 400);
     setTimeout(() => setBridgePhase('hold'), 800);
-    setTimeout(() => { setPage('runway'); setBridgePhase('idle'); setIsExiting(false); }, 1000);
+    setTimeout(() => { setPage('web'); setBridgePhase('idle'); setIsExiting(false); }, 1000);
   }
 
   const showBottomNav = MAIN_TABS.includes(page);
 
   return (
     <div style={{ width: '100vw', height: '100vh', overflow: 'hidden', background: '#02030A' }}>
-      <AnimatePresence>
+      <AnimatePresence mode="wait">
 
-        {page === 'login' && (
-          <motion.div key="login" initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }} transition={{ duration:0.4 }} style={{ position:'absolute', inset:0 }}>
-            <LoginPage onLoginSuccess={handleLoginSuccess} onGoSignup={() => setPage('signup')} />
-          </motion.div>
-        )}
-
-        {page === 'signup' && (
-          <motion.div key="signup" initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }} transition={{ duration:0.4 }} style={{ position:'absolute', inset:0 }}>
-            <SignupPage onSignupSuccess={handleSignupSuccess} onGoLogin={() => setPage('login')} />
+        {(page === 'onboarding' || page === 'transitioning') && (
+          <motion.div key="onboarding" initial={{ opacity: 1 }} animate={{ opacity: isExiting ? 0 : 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.4, ease: 'easeIn' }} style={{ position: 'absolute', inset: 0 }}>
+            <Suspense fallback={<PageLoader />}>
+              <OnboardingPage onEnter={handleEnter} />
+            </Suspense>
           </motion.div>
         )}
 
@@ -209,24 +198,8 @@ export default function App() {
           </motion.div>
         )}
 
-        {(page === 'onboarding' || page === 'transitioning') && (
-          <motion.div key="page1" initial={{ opacity:1 }} animate={{ opacity: isExiting ? 0 : 1 }} exit={{ opacity:0 }} transition={{ duration:0.4, ease:'easeIn' }} style={{ position:'absolute', inset:0 }}>
-            <Suspense fallback={<PageLoader />}>
-              <OnboardingPage onEnter={handleEnter} />
-            </Suspense>
-          </motion.div>
-        )}
-
-        {page === 'runway' && (
-          <motion.div key="runway" initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }} transition={{ duration:0.35 }} style={{ position:'absolute', inset:0, paddingBottom:88 }}>
-            <Suspense fallback={<PageLoader />}>
-              <RunwayPage userName={userName} />
-            </Suspense>
-          </motion.div>
-        )}
-
         {page === 'web' && (
-          <motion.div key="web" initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }} transition={{ duration:0.35 }} style={{ position:'absolute', inset:0, paddingBottom:88 }}>
+          <motion.div key="web" initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }} transition={{ duration:0.5, delay:0.1 }} style={{ position:'absolute', inset:0, paddingBottom:88 }}>
             <Suspense fallback={<PageLoader />}>
               <AgenticWebPage
                 userName={userName}
@@ -249,9 +222,9 @@ export default function App() {
             <Suspense fallback={<PageLoader />}>
               <ChatbotPage
                 userName={userName}
-                onComplete={() => setPage(chatbotCompleteTarget === 'onboarding' ? 'runway' : chatbotCompleteTarget)}
-                onSkip={() => setPage('runway')}
-                onHome={() => setPage('runway')}
+                onComplete={() => setPage(chatbotCompleteTarget)}
+                onSkip={() => setPage(chatbotCompleteTarget)}
+                onHome={() => setPage('web')}
               />
             </Suspense>
           </motion.div>
@@ -262,9 +235,17 @@ export default function App() {
             <Suspense fallback={<PageLoader />}>
               <CommunityPage
                 userName={userName}
-                onBack={() => setPage('runway')}
-                onHome={() => setPage('runway')}
+                onBack={() => setPage('web')}
+                onHome={() => setPage('web')}
               />
+            </Suspense>
+          </motion.div>
+        )}
+
+        {page === 'runway' && (
+          <motion.div key="runway" initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }} transition={{ duration:0.35 }} style={{ position:'absolute', inset:0, paddingBottom:88 }}>
+            <Suspense fallback={<PageLoader />}>
+              <RunwayPage userName={userName} />
             </Suspense>
           </motion.div>
         )}
@@ -285,7 +266,7 @@ export default function App() {
         {page === 'developer' && (
           <motion.div key="developer" initial={{ opacity:0, y:12 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, y:-8 }} transition={{ duration:0.5 }} style={{ position:'absolute', inset:0 }}>
             <Suspense fallback={<PageLoader />}>
-              <DeveloperPage onBack={() => setPage('runway')} />
+              <DeveloperPage onBack={() => setPage('web')} />
             </Suspense>
           </motion.div>
         )}

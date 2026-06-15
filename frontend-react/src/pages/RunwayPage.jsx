@@ -2021,7 +2021,7 @@ export default function RunwayPage({ userName = 'USER' }) {
                         <motion.button onClick={() => goSimStep(2, 1)}
                           whileHover={{ scale:1.01 }} whileTap={{ scale:0.98 }}
                           style={{ width:'100%', marginTop:28, padding:'15px', borderRadius:13,
-                            border:'none', cursor:'pointer', fontFamily:'inherit',
+                            cursor:'pointer', fontFamily:'inherit',
                             fontSize:14, fontWeight:600,
                             background:`linear-gradient(135deg,${TEAL}28,${PUR}28)`,
                             border:`1px solid ${TEAL}30`, color:'white' }}>
@@ -2102,7 +2102,7 @@ export default function RunwayPage({ userName = 'USER' }) {
                           </button>
                           <motion.button onClick={startSimulate}
                             whileHover={{ scale:1.01 }} whileTap={{ scale:0.98 }}
-                            style={{ flex:2, padding:'13px', borderRadius:12, border:'none',
+                            style={{ flex:2, padding:'13px', borderRadius:12,
                               cursor:'pointer', fontFamily:'inherit', fontSize:13, fontWeight:600,
                               background:`linear-gradient(135deg,${TEAL}28,${PUR}28)`,
                               border:`1px solid ${TEAL}30`, color:'white' }}>

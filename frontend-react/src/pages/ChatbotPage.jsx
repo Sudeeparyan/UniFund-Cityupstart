@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   sendChatMessage, getChatHistory, getMe, getChatChunks,
   clearChatHistory, deleteChatMessage, enhanceContent, uploadFile,
+  runStudioPipeline,
 } from '../lib/api';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
@@ -409,11 +410,39 @@ function StudioHeader({ buildStage, profile, onBack, onHome }) {
   );
 }
 
+// ── 20 Student Agents ─────────────────────────────────────────────────────────
+
+const AGENTS = [
+  { id: 'ARIA',   role: 'Orchestrator',       icon: '◎',  color: '#00D1FF', desc: 'Routes tasks & coordinates agents' },
+  { id: 'SCOUT',  role: 'JD Analyzer',        icon: '🔍', color: '#7B61FF', desc: 'Extracts requirements from JDs' },
+  { id: 'NEXUS',  role: 'Deep Researcher',    icon: '🧠', color: '#FF5FB6', desc: 'Company & industry intelligence' },
+  { id: 'LENS',   role: 'Skill Matcher',      icon: '⚡', color: '#FBBF24', desc: 'Scores your profile vs requirements' },
+  { id: 'RESUME', role: 'Resume Builder',     icon: '📄', color: '#4ADE80', desc: 'Crafts tailored ATS resumes' },
+  { id: 'QUILL',  role: 'Cover Letter',       icon: '✍️', color: '#F472B6', desc: 'Personalized cover letters' },
+  { id: 'PREP',   role: 'Interview Coach',    icon: '🎯', color: '#A78BFA', desc: 'Likely Q&As for your target role' },
+  { id: 'LINX',   role: 'LinkedIn Optimizer', icon: '🔗', color: '#38BDF8', desc: 'Headline & summary optimization' },
+  { id: 'PATH',   role: 'Learning Planner',   icon: '🗺️', color: '#34D399', desc: 'Roadmaps to close skill gaps' },
+  { id: 'SIGMA',  role: 'Study Scheduler',    icon: '📅', color: '#FB923C', desc: 'Deadline tracking & study plans' },
+  { id: 'BUILD',  role: 'Project Ideator',    icon: '🏗️', color: '#E879F9', desc: 'Portfolio-worthy project ideas' },
+  { id: 'FOLIO',  role: 'Portfolio Coach',    icon: '🖼️', color: '#2DD4BF', desc: 'Curates what to show employers' },
+  { id: 'CITE',   role: 'Citation Agent',     icon: '📚', color: '#FACC15', desc: 'APA, MLA, Chicago in seconds' },
+  { id: 'DRAFT',  role: 'Email Drafter',      icon: '✉️', color: '#60A5FA', desc: 'Cold emails to recruiters' },
+  { id: 'FUND',   role: 'Scholarship Finder', icon: '💰', color: '#86EFAC', desc: 'Matched scholarship opportunities' },
+  { id: 'MATCH',  role: 'Internship Matcher', icon: '🎪', color: '#F87171', desc: 'Best-fit internship discovery' },
+  { id: 'PAY',    role: 'Salary Intel',       icon: '📊', color: '#A3E635', desc: 'Market rates & negotiation' },
+  { id: 'NET',    role: 'Network Strategist', icon: '🌐', color: '#C084FC', desc: 'Who to contact & how' },
+  { id: 'BRIEF',  role: 'Summarizer',         icon: '⚡', color: '#67E8F9', desc: 'Condenses papers & articles' },
+  { id: 'ESSAY',  role: 'Academic Writer',    icon: '🎓', color: '#FB7185', desc: 'SOPs, essays & academic writing' },
+];
+
+const PIPELINE_AGENTS = ['ARIA', 'SCOUT', 'NEXUS', 'LENS', 'RESUME'];
+
 const TABS = [
   { id: 'profile',   label: 'Profile',   icon: '◎' },
+  { id: 'agents',    label: 'Agents',    icon: '🤖' },
   { id: 'social',    label: 'Social',    icon: '◈' },
   { id: 'knowledge', label: 'Knowledge', icon: '🧠' },
-  { id: 'tools',     label: 'Tools',     icon: '⚡' },
+  { id: 'tools',     label: 'Tools',     icon: '📤' },
 ];
 
 function LeftPanelTabs({ activeTab, setActiveTab }) {
@@ -437,7 +466,6 @@ function LeftPanelTabs({ activeTab, setActiveTab }) {
 }
 
 function AgentIdentityCard({ profile, buildStage, onClear }) {
-  debugger;
   const [confirmClear, setConfirmClear] = useState(false);
   const chunks = profile.chunks_saved || 0;
   const xp = chunks * XP_PER_CHUNK;
@@ -780,6 +808,322 @@ function ToolsPanel({ profile, knowledgeItems }) {
   );
 }
 
+// ── Agent Network Components ───────────────────────────────────────────────────
+
+function AgentCard({ agent, status }) {
+  const isActive = status === 'active';
+  const isDone   = status === 'done';
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'flex-start', gap: 8,
+      padding: '7px 10px', borderRadius: 8,
+      background: isActive ? `${agent.color}10` : 'transparent',
+      border: `1px solid ${isActive ? agent.color + '35' : 'transparent'}`,
+      transition: 'background 0.25s, border-color 0.25s',
+    }}>
+      <div style={{ position: 'relative', flexShrink: 0, marginTop: 2 }}>
+        <span style={{ fontSize: 13 }}>{agent.icon}</span>
+        {isActive && (
+          <motion.div
+            animate={{ scale: [1, 1.8, 1], opacity: [0.7, 0, 0.7] }}
+            transition={{ duration: 1.2, repeat: Infinity }}
+            style={{ position: 'absolute', inset: -3, borderRadius: '50%', background: agent.color, opacity: 0.3 }}
+          />
+        )}
+        <div style={{
+          position: 'absolute', bottom: -1, right: -1,
+          width: 6, height: 6, borderRadius: '50%',
+          background: isDone ? '#4ADE80' : isActive ? agent.color : 'rgba(255,255,255,0.12)',
+          boxShadow: isActive ? `0 0 5px ${agent.color}` : 'none',
+          transition: 'background 0.3s',
+        }} />
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', color: isActive ? agent.color : isDone ? '#4ADE80' : 'rgba(255,255,255,0.7)' }}>
+            {agent.id}
+          </span>
+          <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.05)', borderRadius: 3, padding: '1px 4px' }}>
+            {agent.role}
+          </span>
+        </div>
+        <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', margin: '1px 0 0', lineHeight: 1.3 }}>{agent.desc}</p>
+      </div>
+    </div>
+  );
+}
+
+function CommLogEntry({ entry }) {
+  const fromColor = (AGENTS.find(a => a.id === entry.from_agent)?.color) ?? '#7B61FF';
+  const toColor   = (AGENTS.find(a => a.id === entry.to_agent)?.color)   ?? '#7B61FF';
+  return (
+    <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.28 }}
+      style={{ padding: '6px 12px', borderLeft: `2px solid ${fromColor}35` }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 2 }}>
+        <span style={{ fontSize: 9, fontWeight: 700, color: fromColor }}>{entry.from_agent}</span>
+        <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.2)' }}>→</span>
+        <span style={{ fontSize: 9, fontWeight: 700, color: toColor }}>{entry.to_agent}</span>
+      </div>
+      <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.55)', margin: 0, lineHeight: 1.4 }}>{entry.message}</p>
+    </motion.div>
+  );
+}
+
+function AgentNetworkPanel({ agentStatuses, commLogs, isRunning }) {
+  const commsRef = useRef(null);
+  useEffect(() => {
+    if (commsRef.current) commsRef.current.scrollTop = commsRef.current.scrollHeight;
+  }, [commLogs.length]);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      {/* Status bar */}
+      <div style={{ padding: '10px 14px 8px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ width: 5, height: 5, borderRadius: '50%', background: 'linear-gradient(135deg, #00D1FF, #7B61FF)', boxShadow: '0 0 6px #00D1FF' }} />
+          <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.45)' }}>AGENT NETWORK</span>
+        </div>
+        <div style={{ display: 'flex', gap: 5, alignItems: 'center' }}>
+          {PIPELINE_AGENTS.map(id => {
+            const st = agentStatuses[id];
+            const color = AGENTS.find(a => a.id === id)?.color ?? '#7B61FF';
+            return (
+              <div key={id} title={id} style={{
+                width: 7, height: 7, borderRadius: '50%',
+                background: st === 'done' ? '#4ADE80' : st === 'active' ? color : 'rgba(255,255,255,0.12)',
+                boxShadow: st === 'active' ? `0 0 5px ${color}` : 'none',
+                transition: 'all 0.3s',
+              }} />
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Pipeline hint */}
+      <div style={{ padding: '8px 12px', background: 'rgba(0,209,255,0.04)', borderBottom: '1px solid rgba(0,209,255,0.08)' }}>
+        <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', margin: 0, lineHeight: 1.5 }}>
+          {isRunning
+            ? '⚡ Pipeline running — agents collaborating below'
+            : 'Paste a job description in the chat and click ▶ Run Pipeline to generate your resume.'}
+        </p>
+      </div>
+
+      {/* Agent list */}
+      <div style={{ flex: '0 0 52%', overflowY: 'auto', padding: '4px 4px' }}>
+        {AGENTS.map(agent => (
+          <AgentCard key={agent.id} agent={agent} status={agentStatuses[agent.id] || 'idle'} />
+        ))}
+      </div>
+
+      {/* Live comms */}
+      <div style={{ flex: 1, borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+        <div style={{ padding: '6px 12px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.28)' }}>LIVE COMMS</span>
+          {isRunning && (
+            <motion.div animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 1.4, repeat: Infinity }}
+              style={{ width: 5, height: 5, borderRadius: '50%', background: '#4ADE80' }} />
+          )}
+        </div>
+        <div ref={commsRef} style={{ flex: 1, overflowY: 'auto', padding: '6px 0' }}>
+          {commLogs.length === 0 ? (
+            <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.18)', textAlign: 'center', padding: '16px 12px' }}>
+              Agent communications appear here in real time.
+            </p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+              {commLogs.map((log, i) => <CommLogEntry key={i} entry={log} />)}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ResumeChip({ label, color }) {
+  return (
+    <span style={{
+      fontSize: 11, padding: '3px 9px', borderRadius: 20,
+      border: `1px solid ${color}40`, color, background: `${color}10`,
+    }}>{label}</span>
+  );
+}
+
+function ResumeBubble({ pipelineData }) {
+  const [copied, setCopied] = useState(false);
+  const resume = pipelineData?.resume ?? {};
+  const jd     = pipelineData?.jd_analysis ?? {};
+  const match  = pipelineData?.match_analysis ?? {};
+  const name   = pipelineData?.user_name ?? '';
+  const score  = match.match_score;
+  const ats    = score ? Math.min(score + 15, 97) : null;
+
+  function handleCopy() {
+    const lines = [name, ''];
+    if (resume.summary) lines.push('SUMMARY', resume.summary, '');
+    if (resume.skills_technical?.length) lines.push('TECHNICAL SKILLS', resume.skills_technical.join(', '), '');
+    if (resume.experience?.length) {
+      lines.push('EXPERIENCE');
+      resume.experience.forEach(e => {
+        lines.push(`${e.title} @ ${e.company} | ${e.period}`);
+        (e.bullets || []).forEach(b => lines.push(`  • ${b}`));
+        lines.push('');
+      });
+    }
+    if (resume.education?.length) {
+      lines.push('EDUCATION');
+      resume.education.forEach(e => lines.push(`${e.degree} — ${e.school} (${e.year})`));
+      lines.push('');
+    }
+    if (resume.projects?.length) {
+      lines.push('PROJECTS');
+      resume.projects.forEach(p => { lines.push(`${p.name} [${(p.tech || []).join(', ')}]`); lines.push(`  ${p.description}`, ''); });
+    }
+    navigator.clipboard.writeText(lines.join('\n')).catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+      style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 14, padding: '18px 20px', maxWidth: '100%' }}>
+
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
+        <div>
+          <p style={{ margin: 0, fontSize: 17, fontWeight: 700, color: '#fff' }}>{name}</p>
+          <p style={{ margin: '3px 0 0', fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>
+            Tailored for: <span style={{ color: '#00D1FF' }}>{jd.role}</span>
+            {jd.company && jd.company !== 'Unknown' && <> at <span style={{ color: '#7B61FF' }}>{jd.company}</span></>}
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
+          {score && (
+            <div style={{ padding: '4px 10px', borderRadius: 7, border: `1px solid ${score >= 75 ? '#4ADE80' : '#FBBF24'}40`, background: `${score >= 75 ? '#4ADE80' : '#FBBF24'}10`, display: 'flex', alignItems: 'center', gap: 5 }}>
+              <span style={{ fontSize: 9, color: score >= 75 ? '#4ADE80' : '#FBBF24', fontWeight: 700 }}>MATCH</span>
+              <span style={{ fontSize: 13, fontWeight: 800, color: score >= 75 ? '#4ADE80' : '#FBBF24' }}>{score}%</span>
+            </div>
+          )}
+          {ats && (
+            <div style={{ padding: '4px 10px', borderRadius: 7, border: '1px solid rgba(0,209,255,0.3)', background: 'rgba(0,209,255,0.07)', display: 'flex', alignItems: 'center', gap: 5 }}>
+              <span style={{ fontSize: 9, color: '#00D1FF', fontWeight: 700 }}>ATS</span>
+              <span style={{ fontSize: 13, fontWeight: 800, color: '#00D1FF' }}>~{ats}%</span>
+            </div>
+          )}
+          <button onClick={handleCopy} style={{
+            background: copied ? 'rgba(74,222,128,0.12)' : 'rgba(255,255,255,0.05)',
+            border: `1px solid ${copied ? '#4ADE80' : 'rgba(255,255,255,0.1)'}`,
+            borderRadius: 7, padding: '5px 12px', color: copied ? '#4ADE80' : 'rgba(255,255,255,0.6)',
+            fontSize: 11, cursor: 'pointer', fontFamily: 'Manrope, sans-serif', transition: 'all 0.2s',
+          }}>
+            {copied ? '✓ Copied' : 'Copy'}
+          </button>
+        </div>
+      </div>
+
+      {resume.summary && (
+        <>
+          <SectionDivider label="SUMMARY" />
+          <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.72)', lineHeight: 1.65, margin: '8px 0 14px' }}>{resume.summary}</p>
+        </>
+      )}
+
+      {resume.skills_technical?.length > 0 && (
+        <>
+          <SectionDivider label="TECHNICAL SKILLS" />
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, margin: '8px 0 12px' }}>
+            {resume.skills_technical.map((s, i) => <ResumeChip key={i} label={s} color="#00D1FF" />)}
+            {(resume.skills_soft || []).map((s, i) => <ResumeChip key={`s${i}`} label={s} color="#7B61FF" />)}
+          </div>
+        </>
+      )}
+
+      {resume.experience?.length > 0 && (
+        <>
+          <SectionDivider label="EXPERIENCE" />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, margin: '8px 0 14px' }}>
+            {resume.experience.map((exp, i) => (
+              <div key={i}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: '#fff' }}>{exp.title}</span>
+                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginLeft: 7 }}>@ {exp.company}</span>
+                  </div>
+                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{exp.period}</span>
+                </div>
+                <ul style={{ margin: '5px 0 0 14px', padding: 0 }}>
+                  {(exp.bullets || []).map((b, j) => (
+                    <li key={j} style={{ fontSize: 11, color: 'rgba(255,255,255,0.57)', lineHeight: 1.55, marginBottom: 2 }}>{b}</li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {resume.education?.length > 0 && (
+        <>
+          <SectionDivider label="EDUCATION" />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, margin: '8px 0 14px' }}>
+            {resume.education.map((edu, i) => (
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span><span style={{ fontSize: 12, fontWeight: 600, color: '#fff' }}>{edu.degree}</span>
+                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginLeft: 7 }}>{edu.school}</span></span>
+                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)' }}>{edu.year}</span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {resume.projects?.length > 0 && (
+        <>
+          <SectionDivider label="PROJECTS" />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, margin: '8px 0 14px' }}>
+            {resume.projects.map((proj, i) => (
+              <div key={i}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: '#fff' }}>{proj.name}</span>
+                  {(proj.tech || []).map((t, j) => <ResumeChip key={j} label={t} color="#FF5FB6" />)}
+                </div>
+                <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', margin: '3px 0 0', lineHeight: 1.55 }}>{proj.description}</p>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {resume.certifications?.length > 0 && (
+        <>
+          <SectionDivider label="CERTIFICATIONS" />
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, margin: '8px 0 6px' }}>
+            {resume.certifications.map((c, i) => <ResumeChip key={i} label={c} color="#FBBF24" />)}
+          </div>
+        </>
+      )}
+
+      {match.missing_skills?.length > 0 && (
+        <div style={{ marginTop: 14, padding: '10px 14px', borderRadius: 10, background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.2)' }}>
+          <p style={{ fontSize: 10, color: '#FBBF24', fontWeight: 700, margin: '0 0 5px', letterSpacing: '0.08em' }}>SKILL GAPS TO ADDRESS</p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+            {match.missing_skills.map((s, i) => <ResumeChip key={i} label={s} color="#FBBF24" />)}
+          </div>
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
+function SectionDivider({ label }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '4px 0 0' }}>
+      <span style={{ fontSize: 9, letterSpacing: '0.12em', fontWeight: 700, color: 'rgba(255,255,255,0.28)' }}>{label}</span>
+      <div style={{ flex: 1, height: 1, background: 'rgba(255,255,255,0.07)' }} />
+    </div>
+  );
+}
+
 function ChatStageLabel({ buildStage }) {
   return (
     <AnimatePresence mode="wait">
@@ -930,13 +1274,18 @@ export default function ChatbotPage({ userName, onComplete, onSkip, onHome }) {
   const [enhanceFlagged, setEnhanceFlagged] = useState(false);
   const [enhanceHallucinations, setEnhanceHallucinations] = useState([]);
 
-  // Agent Studio state
+  // Panel + build state
   const [activeTab, setActiveTab] = useState('profile');
   const [buildStage, setBuildStage] = useState(0);
   const [knowledgeItems, setKnowledgeItems] = useState([]);
   const [showCompletionReveal, setShowCompletionReveal] = useState(false);
   const [socialModal, setSocialModal] = useState(null);
   const [socialImporting, setSocialImporting] = useState(false);
+
+  // Agent pipeline state
+  const [agentStatuses, setAgentStatuses] = useState({});
+  const [commLogs, setCommLogs] = useState([]);
+  const [pipelineRunning, setPipelineRunning] = useState(false);
 
   const lastUserMsgRef = useRef('');
   const prevChunksRef = useRef(0);
@@ -1077,6 +1426,59 @@ export default function ChatbotPage({ userName, onComplete, onSkip, onHome }) {
     }
   }
 
+  // ── Agent pipeline ───────────────────────────────────────────────────────────
+  function setAgentStatus(id, status) {
+    setAgentStatuses(prev => ({ ...prev, [id]: status }));
+  }
+
+  function replayAgentLogs(logs) {
+    logs.forEach(log => {
+      setTimeout(() => {
+        setCommLogs(prev => [...prev, log]);
+        if (log.from_agent && log.from_agent !== 'USER') setAgentStatus(log.from_agent, 'active');
+        if (log.to_agent && log.to_agent !== 'USER') setAgentStatus(log.to_agent, 'active');
+      }, log.delay_ms);
+    });
+    const doneMap = { ARIA: 500, SCOUT: 1000, NEXUS: 2500, LENS: 3800, RESUME: 7000 };
+    Object.entries(doneMap).forEach(([id, d]) => setTimeout(() => setAgentStatus(id, 'done'), d));
+  }
+
+  async function handlePipelineRun(jdText) {
+    const jd = jdText.trim();
+    if (!jd || pipelineRunning) return;
+    setPipelineRunning(true);
+    setCommLogs([]);
+    setAgentStatuses({});
+    setAgentStatus('ARIA', 'active');
+    setInput('');
+    setActiveTab('agents');
+
+    setMessages(prev => [...prev,
+      { id: null, role: 'user', content: jd, msgType: 'jd' },
+      { id: null, role: 'assistant', content: '', msgType: 'pipeline-loading' },
+    ]);
+
+    try {
+      const data = await runStudioPipeline('resume', jd);
+      setMessages(prev => prev.map((m, i) =>
+        i === prev.length - 1
+          ? { ...m, msgType: 'resume', pipelineData: data }
+          : m
+      ));
+      replayAgentLogs(data.agent_logs || []);
+      const maxDelay = Math.max(...(data.agent_logs || [{ delay_ms: 0 }]).map(l => l.delay_ms));
+      setTimeout(() => setPipelineRunning(false), maxDelay + 1000);
+    } catch (err) {
+      setMessages(prev => prev.map((m, i) =>
+        i === prev.length - 1
+          ? { ...m, msgType: 'error', content: `Pipeline error: ${err.message}` }
+          : m
+      ));
+      setAgentStatuses({});
+      setPipelineRunning(false);
+    }
+  }
+
   // ── File upload ──────────────────────────────────────────────────────────────
   async function handleFileChange(e) {
     const file = e.target.files?.[0];
@@ -1144,7 +1546,8 @@ export default function ChatbotPage({ userName, onComplete, onSkip, onHome }) {
     setActiveTab('knowledge');
   }
 
-  const showSuggestions = !isComplete && initialized && !loading && !showEnhance;
+  const showSuggestions = !isComplete && initialized && !loading && !showEnhance && activeTab !== 'agents';
+  const agentMode = activeTab === 'agents';
 
   return (
     <div className="h-screen flex flex-col overflow-hidden" style={{ background: '#060812', color: 'white' }}>
@@ -1164,6 +1567,11 @@ export default function ChatbotPage({ userName, onComplete, onSkip, onHome }) {
                   <AgentIdentityCard profile={profile} buildStage={buildStage} onClear={handleClearHistory} />
                   <BuildStageIndicator buildStage={buildStage} />
                   <VoicePreview bio={profile.bio} />
+                </motion.div>
+              )}
+              {activeTab === 'agents' && (
+                <motion.div key="agents" initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 8 }} transition={{ duration: 0.2 }} style={{ height: '100%' }}>
+                  <AgentNetworkPanel agentStatuses={agentStatuses} commLogs={commLogs} isRunning={pipelineRunning} />
                 </motion.div>
               )}
               {activeTab === 'social' && (
@@ -1193,11 +1601,38 @@ export default function ChatbotPage({ userName, onComplete, onSkip, onHome }) {
           <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-5 space-y-4" style={{ scrollBehavior: 'smooth' }}>
             {!initialized && <div className="flex justify-center py-8"><TypingDots /></div>}
 
-            {messages.map((msg, i) =>
-              msg.role === 'assistant'
+            {messages.map((msg, i) => {
+              if (msg.msgType === 'pipeline-loading') {
+                return (
+                  <div key={i} className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold"
+                      style={{ background: 'linear-gradient(135deg, #00D1FF, #7B61FF)' }}>AI</div>
+                    <div className="rounded-2xl rounded-tl-sm px-4 py-3 text-sm" style={{ background: 'rgba(0,209,255,0.08)', border: '1px solid rgba(0,209,255,0.2)', color: 'rgba(255,255,255,0.6)', display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <motion.div animate={{ rotate: 360 }} transition={{ duration: 1.2, repeat: Infinity, ease: 'linear' }}
+                        style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid rgba(0,209,255,0.25)', borderTopColor: '#00D1FF', flexShrink: 0 }} />
+                      <span style={{ fontSize: 12 }}>Agents working — building your resume…</span>
+                    </div>
+                  </div>
+                );
+              }
+              if (msg.msgType === 'resume') {
+                return (
+                  <div key={i} className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold"
+                      style={{ background: 'linear-gradient(135deg, #4ADE80, #00D1FF)' }}>AI</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 10 }}>
+                        ✓ Pipeline complete · Resume tailored to your profile
+                      </p>
+                      <ResumeBubble pipelineData={msg.pipelineData} />
+                    </div>
+                  </div>
+                );
+              }
+              return msg.role === 'assistant'
                 ? <AiBubble key={msg.id || i} id={msg.id} content={msg.content} onDelete={handleDeleteMessage} />
-                : <UserBubble key={msg.id || i} id={msg.id} content={msg.content} onDelete={handleDeleteMessage} />
-            )}
+                : <UserBubble key={msg.id || i} id={msg.id} content={msg.content} onDelete={handleDeleteMessage} />;
+            })}
 
             {loading && initialized && (
               <div className="flex items-start gap-3">
@@ -1248,58 +1683,107 @@ export default function ChatbotPage({ userName, onComplete, onSkip, onHome }) {
               )}
             </AnimatePresence>
 
+            {/* Agent mode banner */}
+            {agentMode && (
+              <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
+                style={{ marginBottom: 10, padding: '8px 14px', borderRadius: 10, background: 'rgba(0,209,255,0.06)', border: '1px solid rgba(0,209,255,0.18)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 11 }}>🤖</span>
+                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>
+                  <strong style={{ color: '#00D1FF' }}>Agent Mode</strong> — paste a job description below, then click ▶ Run Pipeline
+                </span>
+              </motion.div>
+            )}
+
             <div className="flex items-end gap-2">
               <input ref={fileInputRef} type="file" accept={ACCEPT_TYPES} className="hidden" onChange={handleFileChange} />
-              <button onClick={() => fileInputRef.current?.click()} disabled={loading || fileUploading}
-                title="Upload PDF, DOCX, image, or text file"
-                className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all"
-                style={{ background: fileUploading ? 'rgba(0,209,255,0.15)' : 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: fileUploading ? '#00D1FF' : 'rgba(255,255,255,0.4)', cursor: loading ? 'not-allowed' : 'pointer' }}
-                onMouseEnter={e => { if (!loading && !fileUploading) { e.currentTarget.style.borderColor = 'rgba(0,209,255,0.35)'; e.currentTarget.style.color = '#00D1FF'; }}}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = fileUploading ? '#00D1FF' : 'rgba(255,255,255,0.4)'; }}>
-                {fileUploading ? (
-                  <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                    className="w-4 h-4 rounded-full border-t-2" style={{ borderColor: '#00D1FF transparent transparent' }} />
-                ) : (
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="17 8 12 3 7 8" />
-                    <line x1="12" y1="3" x2="12" y2="15" />
-                  </svg>
-                )}
-              </button>
+              {!agentMode && (
+                <button onClick={() => fileInputRef.current?.click()} disabled={loading || fileUploading}
+                  title="Upload PDF, DOCX, image, or text file"
+                  className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all"
+                  style={{ background: fileUploading ? 'rgba(0,209,255,0.15)' : 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: fileUploading ? '#00D1FF' : 'rgba(255,255,255,0.4)', cursor: loading ? 'not-allowed' : 'pointer' }}
+                  onMouseEnter={e => { if (!loading && !fileUploading) { e.currentTarget.style.borderColor = 'rgba(0,209,255,0.35)'; e.currentTarget.style.color = '#00D1FF'; }}}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = fileUploading ? '#00D1FF' : 'rgba(255,255,255,0.4)'; }}>
+                  {fileUploading ? (
+                    <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                      className="w-4 h-4 rounded-full border-t-2" style={{ borderColor: '#00D1FF transparent transparent' }} />
+                  ) : (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="17 8 12 3 7 8" />
+                      <line x1="12" y1="3" x2="12" y2="15" />
+                    </svg>
+                  )}
+                </button>
+              )}
 
               <textarea ref={inputRef} value={input} onChange={e => setInput(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); pendingFile ? handleSendWithFile(input) : sendMessage(input); }}}
-                placeholder="Tell the AI about yourself..."
-                rows={2} disabled={loading}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    if (agentMode) handlePipelineRun(input);
+                    else pendingFile ? handleSendWithFile(input) : sendMessage(input);
+                  }
+                }}
+                placeholder={agentMode ? 'Paste a job description here…' : 'Tell the AI about yourself...'}
+                rows={agentMode ? 4 : 2}
+                disabled={agentMode ? pipelineRunning : loading}
                 className="flex-1 resize-none rounded-xl px-4 py-3 text-sm outline-none transition-all"
-                style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.95)', lineHeight: '1.5' }}
-                onFocus={e => { e.target.style.borderColor = 'rgba(123,97,255,0.6)'; e.target.style.background = 'rgba(255,255,255,0.09)'; }}
-                onBlur={e => { e.target.style.borderColor = 'rgba(255,255,255,0.15)'; e.target.style.background = 'rgba(255,255,255,0.07)'; }}
+                style={{ background: 'rgba(255,255,255,0.07)', border: `1px solid ${agentMode ? 'rgba(0,209,255,0.25)' : 'rgba(255,255,255,0.15)'}`, color: 'rgba(255,255,255,0.95)', lineHeight: '1.5' }}
+                onFocus={e => { e.target.style.borderColor = agentMode ? 'rgba(0,209,255,0.55)' : 'rgba(123,97,255,0.6)'; e.target.style.background = 'rgba(255,255,255,0.09)'; }}
+                onBlur={e => { e.target.style.borderColor = agentMode ? 'rgba(0,209,255,0.25)' : 'rgba(255,255,255,0.15)'; e.target.style.background = 'rgba(255,255,255,0.07)'; }}
               />
 
-              <button onClick={handleEnhance} disabled={loading || !input.trim() || showEnhance}
-                title="Let AI expand your message before sending"
-                className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all"
-                style={{ background: !input.trim() || showEnhance ? 'rgba(123,97,255,0.06)' : 'rgba(123,97,255,0.12)', border: `1px solid ${!input.trim() || showEnhance ? 'rgba(123,97,255,0.1)' : 'rgba(123,97,255,0.35)'}`, color: !input.trim() || showEnhance ? 'rgba(123,97,255,0.3)' : '#7B61FF', cursor: loading || !input.trim() || showEnhance ? 'not-allowed' : 'pointer', fontSize: 17 }}
-                onMouseEnter={e => { if (input.trim() && !showEnhance && !loading) e.currentTarget.style.background = 'rgba(123,97,255,0.22)'; }}
-                onMouseLeave={e => { e.currentTarget.style.background = !input.trim() || showEnhance ? 'rgba(123,97,255,0.06)' : 'rgba(123,97,255,0.12)'; }}>
-                ✦
-              </button>
+              {!agentMode && (
+                <button onClick={handleEnhance} disabled={loading || !input.trim() || showEnhance}
+                  title="Let AI expand your message before sending"
+                  className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all"
+                  style={{ background: !input.trim() || showEnhance ? 'rgba(123,97,255,0.06)' : 'rgba(123,97,255,0.12)', border: `1px solid ${!input.trim() || showEnhance ? 'rgba(123,97,255,0.1)' : 'rgba(123,97,255,0.35)'}`, color: !input.trim() || showEnhance ? 'rgba(123,97,255,0.3)' : '#7B61FF', cursor: loading || !input.trim() || showEnhance ? 'not-allowed' : 'pointer', fontSize: 17 }}
+                  onMouseEnter={e => { if (input.trim() && !showEnhance && !loading) e.currentTarget.style.background = 'rgba(123,97,255,0.22)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = !input.trim() || showEnhance ? 'rgba(123,97,255,0.06)' : 'rgba(123,97,255,0.12)'; }}>
+                  ✦
+                </button>
+              )}
 
-              <button onClick={() => pendingFile ? handleSendWithFile(input) : sendMessage(input)}
-                disabled={loading || !input.trim()}
-                className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all"
-                style={{ background: loading || !input.trim() ? 'rgba(123,97,255,0.15)' : 'linear-gradient(135deg, #7B61FF, #00D1FF)', cursor: loading || !input.trim() ? 'not-allowed' : 'pointer' }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="22" y1="2" x2="11" y2="13" />
-                  <polygon points="22 2 15 22 11 13 2 9 22 2" />
-                </svg>
-              </button>
+              {agentMode ? (
+                <motion.button
+                  whileHover={{ scale: pipelineRunning ? 1 : 1.04 }}
+                  whileTap={{ scale: pipelineRunning ? 1 : 0.96 }}
+                  onClick={() => handlePipelineRun(input)}
+                  disabled={pipelineRunning || !input.trim()}
+                  className="flex-shrink-0 rounded-xl flex items-center justify-center gap-2 transition-all"
+                  style={{
+                    height: 40, padding: '0 16px', whiteSpace: 'nowrap',
+                    background: pipelineRunning || !input.trim() ? 'rgba(0,209,255,0.1)' : 'linear-gradient(135deg, #00D1FF, #7B61FF)',
+                    border: `1px solid ${pipelineRunning ? 'rgba(0,209,255,0.2)' : 'transparent'}`,
+                    color: pipelineRunning || !input.trim() ? 'rgba(0,209,255,0.4)' : '#fff',
+                    cursor: pipelineRunning || !input.trim() ? 'not-allowed' : 'pointer',
+                    fontSize: 12, fontWeight: 600, fontFamily: 'Manrope, sans-serif',
+                  }}>
+                  {pipelineRunning ? (
+                    <>
+                      <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                        style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(0,209,255,0.2)', borderTopColor: 'rgba(0,209,255,0.6)' }} />
+                      Running…
+                    </>
+                  ) : '▶ Run Pipeline'}
+                </motion.button>
+              ) : (
+                <button onClick={() => pendingFile ? handleSendWithFile(input) : sendMessage(input)}
+                  disabled={loading || !input.trim()}
+                  className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center transition-all"
+                  style={{ background: loading || !input.trim() ? 'rgba(123,97,255,0.15)' : 'linear-gradient(135deg, #7B61FF, #00D1FF)', cursor: loading || !input.trim() ? 'not-allowed' : 'pointer' }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="22" y1="2" x2="11" y2="13" />
+                    <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                  </svg>
+                </button>
+              )}
             </div>
 
             <p className="mt-2 text-xs text-center" style={{ color: 'rgba(255,255,255,0.18)' }}>
-              Enter to send · Shift+Enter for new line · ✦ to expand · 📎 to upload
+              {agentMode
+                ? 'Enter or ▶ Run Pipeline · Switch to other tabs for normal chat'
+                : 'Enter to send · Shift+Enter for new line · ✦ to expand · 📎 to upload'}
             </p>
           </div>
         </div>

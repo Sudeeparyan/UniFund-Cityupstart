@@ -26,6 +26,8 @@ async function request(method, path, body) {
 }
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
+export const guestLogin = () => request('POST', '/api/auth/guest');
+
 export const signup = (email, password, name) =>
   request('POST', '/api/auth/signup', { email, password, name });
 
@@ -145,6 +147,10 @@ export const runRunwaySimulate = async (monthlyIncome, expenses) => {
     personalised:   data.personalised,
   };
 };
+
+// ── Agent Studio ──────────────────────────────────────────────────────────────
+export const runStudioPipeline = (task, jobDescription) =>
+  request('POST', '/api/studio/run', { task, job_description: jobDescription });
 
 // ── Developer (unauthenticated login, then dev-token requests) ────────────────
 function getDevToken() {

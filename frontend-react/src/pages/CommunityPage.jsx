@@ -308,15 +308,23 @@ function FeaturedStoriesBar({ agents }) {
 
     async function scroll() {
       while (runningRef.current) {
-        await controls.start({
-          x: -totalWidth,
-          transition: { duration: agents.length * 1.8, ease: 'linear' },
-        });
+        try {
+          await controls.start({
+            x: -totalWidth,
+            transition: { duration: agents.length * 1.8, ease: 'linear' },
+          });
+        } catch {
+          break;
+        }
+        if (!runningRef.current) break;
         controls.set({ x: 0 });
       }
     }
     scroll();
-    return () => { runningRef.current = false; };
+    return () => {
+      runningRef.current = false;
+      controls.stop();
+    };
   }, [agents, controls]);
 
   if (!agents.length) return null;
@@ -374,17 +382,20 @@ function SortSelector({ sort, setSort }) {
           className="relative px-5 py-1.5 text-[11px] tracking-wide z-10 transition-colors"
           style={{ color: sort === opt ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.35)' }}
         >
-          {sort === opt && (
-            <motion.div
-              layoutId="sort-pill"
-              className="absolute inset-0 rounded-xl"
-              style={{
-                background: 'linear-gradient(135deg, rgba(0,209,255,0.18), rgba(123,97,255,0.22))',
-                border: '1px solid rgba(123,97,255,0.4)',
-              }}
-              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            />
-          )}
+          <AnimatePresence>
+            {sort === opt && (
+              <motion.div
+                key="sort-pill"
+                layoutId="sort-pill"
+                className="absolute inset-0 rounded-xl"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(0,209,255,0.18), rgba(123,97,255,0.22))',
+                  border: '1px solid rgba(123,97,255,0.4)',
+                }}
+                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              />
+            )}
+          </AnimatePresence>
           <span className="relative">{opt}</span>
         </button>
       ))}
@@ -874,12 +885,12 @@ export default function CommunityPage({ userName = '', onBack, onHome }) {
   }, []);
 
   useEffect(() => {
-    if (!achievementShown.current) {
-      achievementShown.current = true;
-      setTimeout(() => {
-        setAchievement({ icon: '🌐', label: 'Community Explorer', xp: 50 });
-      }, 1200);
-    }
+    if (achievementShown.current) return;
+    achievementShown.current = true;
+    const t = setTimeout(() => {
+      setAchievement({ icon: '🌐', label: 'Community Explorer', xp: 50 });
+    }, 1200);
+    return () => clearTimeout(t);
   }, []);
 
   const handlePost = useCallback(async ({ text, tag }) => {
