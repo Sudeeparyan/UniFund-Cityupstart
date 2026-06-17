@@ -1,4 +1,4 @@
-// UniMind cinematic particle scene
+// UniFund cinematic particle scene
 // Stages: dust -> molecule -> dna -> brain
 // One BufferGeometry of N particles; each stage provides a target position array.
 // Particles lerp toward their assigned target with a per-particle delay for organic morphs.
@@ -289,7 +289,7 @@ function buildParticleTexture() {
 
 // ---------- Scene factory ----------
 
-export function createUniMindScene(container) {
+export function createUniFundScene(container) {
   const width = container.clientWidth;
   const height = container.clientHeight;
 

@@ -1,4 +1,5 @@
 import os
+import time
 from openai import AsyncAzureOpenAI
 from dotenv import load_dotenv
 
@@ -21,14 +22,30 @@ def get_client() -> AsyncAzureOpenAI:
 DEPLOYMENT = os.getenv("DEPLOYMENT_NAME", "gpt-5-chat")
 
 
-async def chat_complete(messages: list[dict], temperature: float = 0.8, max_tokens: int = 800) -> str:
+async def chat_complete(
+    messages: list[dict],
+    temperature: float = 0.8,
+    max_tokens: int = 800,
+    return_usage: bool = False,
+):
     client = get_client()
+    t0 = time.monotonic()
     response = await client.chat.completions.create(
         model=DEPLOYMENT,
         messages=messages,
         max_completion_tokens=max_tokens,
     )
-    return response.choices[0].message.content or ""
+    duration_ms = int((time.monotonic() - t0) * 1000)
+    content = response.choices[0].message.content or ""
+    if return_usage:
+        usage = response.usage
+        return {
+            "content": content,
+            "tokens_in": usage.prompt_tokens if usage else 0,
+            "tokens_out": usage.completion_tokens if usage else 0,
+            "duration_ms": duration_ms,
+        }
+    return content
 
 
 async def simulate_life(user_profile: dict, onboarding: dict) -> str:
@@ -72,4 +89,9 @@ async def simulate_life(user_profile: dict, onboarding: dict) -> str:
         {"role": "system", "content": system},
         {"role": "user", "content": user_content},
     ]
-    return await chat_complete(messages, temperature=0.82, max_tokens=1500)
+    result = await chat_complete(messages, temperature=0.82, max_tokens=1500, return_usage=True)
+    return result["content"], {
+        "tokens_in": result["tokens_in"],
+        "tokens_out": result["tokens_out"],
+        "duration_ms": result["duration_ms"],
+    }

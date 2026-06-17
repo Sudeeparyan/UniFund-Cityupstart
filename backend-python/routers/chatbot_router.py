@@ -2,7 +2,7 @@ import uuid
 import json
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile, File
 
 from db import get_db
 from auth import get_current_user
@@ -19,6 +19,7 @@ from services.chatbot_service import (
     extract_text_from_file,
 )
 from services.azure_openai import chat_complete
+from services.eval_service import score_chunk_background, check_enhancement_hallucinations
 
 router = APIRouter()
 
@@ -51,18 +52,20 @@ async def _save_message(db, user_id: str, role: str, content: str) -> tuple[str,
     return msg_id, created_at
 
 
-async def _save_chunk(db, user_id: str, content: str, category: str) -> None:
+async def _save_chunk(db, user_id: str, content: str, category: str) -> str:
     chunk_id = str(uuid.uuid4())
     created_at = datetime.now(timezone.utc).isoformat()
     await db.execute(
         "INSERT INTO knowledge_chunks (id, user_id, content, category, created_at) VALUES (?, ?, ?, ?, ?)",
         (chunk_id, user_id, content, category, created_at),
     )
+    return chunk_id
 
 
 @router.post("/message", response_model=ChatResponse)
 async def send_message(
     payload: ChatMessageIn,
+    background_tasks: BackgroundTasks,
     current_user: dict = Depends(get_current_user),
     db=Depends(get_db),
 ):
@@ -106,7 +109,16 @@ async def send_message(
     messages.append({"role": "user", "content": payload.content})
 
     # LLM response
-    assistant_reply = await chat_complete(messages, temperature=0.8)
+    llm_result = await chat_complete(messages, temperature=0.8, return_usage=True)
+    assistant_reply = llm_result["content"]
+    now_iso = datetime.now(timezone.utc).isoformat()
+    await db.execute(
+        "INSERT INTO llm_logs (id,user_id,user_name,call_type,tokens_in,tokens_out,duration_ms,status,created_at)"
+        " VALUES (?,?,?,?,?,?,?,?,?)",
+        (str(uuid.uuid4()), user_id, user_name, "chatbot",
+         llm_result["tokens_in"], llm_result["tokens_out"], llm_result["duration_ms"], "llm", now_iso),
+    )
+    await db.execute("UPDATE users SET last_active=? WHERE id=?", (now_iso, user_id))
 
     # Save assistant response
     asst_id, asst_created_at = await _save_message(db, user_id, "assistant", assistant_reply)
@@ -116,7 +128,12 @@ async def send_message(
     try:
         extracted = await extract_knowledge(payload.content)
         if extracted and extracted.get("should_save"):
-            await _save_chunk(db, user_id, extracted["content"], extracted.get("category", "general"))
+            chunk_content  = extracted["content"]
+            chunk_category = extracted.get("category", "general")
+            chunk_id = await _save_chunk(db, user_id, chunk_content, chunk_category)
+            background_tasks.add_task(
+                score_chunk_background, chunk_id, user_id, user_name, chunk_content, chunk_category
+            )
             all_chunks = await _get_chunks(db, user_id)
             new_bio = await build_agent_bio(user_name, all_chunks)
             skills = [c["content"] for c in all_chunks if c["category"] == "skill"][:8]
@@ -143,6 +160,19 @@ async def send_message(
         ),
         profile_update=profile_update,
     )
+
+
+@router.get("/chunks")
+async def get_chunks(
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_db),
+):
+    cursor = await db.execute(
+        "SELECT content, category, created_at FROM knowledge_chunks WHERE user_id=? ORDER BY created_at ASC",
+        (current_user["id"],),
+    )
+    rows = await cursor.fetchall()
+    return [{"content": r["content"], "category": r["category"], "created_at": r["created_at"]} for r in rows]
 
 
 @router.get("/history", response_model=list[ChatMessageOut])
@@ -198,8 +228,29 @@ async def enhance_message(
     db=Depends(get_db),
 ):
     chunks = await _get_chunks(db, current_user["id"])
-    result = await enhance_content(payload.content, current_user["name"], chunks)
-    return EnhanceResponse(enhanced=result)
+    enhanced_text = await enhance_content(payload.content, current_user["name"], chunks)
+
+    # Pipeline 3 — hallucination guard
+    guard = await check_enhancement_hallucinations(payload.content, enhanced_text, chunks)
+    now = datetime.now(timezone.utc).isoformat()
+    await db.execute(
+        "INSERT INTO enhance_logs"
+        " (id,user_id,original,flagged,hallucinations,enhanced_text,raw_guard_response,"
+        "  user_prompt,tokens_in,tokens_out,created_at)"
+        " VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+        (str(uuid.uuid4()), current_user["id"], payload.content,
+         1 if guard["flagged"] else 0, json.dumps(guard["hallucinations"]),
+         enhanced_text, guard.get("raw_response", ""),
+         guard.get("user_prompt", ""), guard.get("tokens_in", 0), guard.get("tokens_out", 0),
+         now),
+    )
+    await db.commit()
+
+    return EnhanceResponse(
+        enhanced=enhanced_text,
+        flagged=guard["flagged"],
+        hallucinations=guard["hallucinations"],
+    )
 
 
 @router.post("/upload", response_model=UploadResponse)

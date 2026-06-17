@@ -15,9 +15,9 @@ export default function LoginPage({ onLoginSuccess, onGoSignup }) {
     setError('');
     try {
       const data = await login(email, password);
-      localStorage.setItem('unimind_token', data.access_token);
-      localStorage.setItem('unimind_name', data.name);
-      localStorage.setItem('unimind_user_id', data.user_id);
+      localStorage.setItem('unifund_token', data.access_token);
+      localStorage.setItem('unifund_name', data.name);
+      localStorage.setItem('unifund_user_id', data.user_id);
       onLoginSuccess({ id: data.user_id, name: data.name });
     } catch (err) {
       setError(err.message || 'Login failed');
@@ -51,7 +51,7 @@ export default function LoginPage({ onLoginSuccess, onGoSignup }) {
             className="inline-block text-xs tracking-[0.4em] mb-3 font-medium"
             style={{ color: 'rgba(255,255,255,0.35)' }}
           >
-            UNIMIND
+            UNIFUND
           </div>
           <h1
             className="text-3xl font-light tracking-wider mb-2"
@@ -139,7 +139,7 @@ export default function LoginPage({ onLoginSuccess, onGoSignup }) {
         </div>
 
         <p className="text-center mt-6 text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
-          New to UniMind?{' '}
+          New to UniFund?{' '}
           <button
             onClick={onGoSignup}
             className="transition-colors"

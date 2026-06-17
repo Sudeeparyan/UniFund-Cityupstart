@@ -11,6 +11,7 @@ load_dotenv()
 import aiosqlite
 from db import DB_PATH, CREATE_TABLES_SQL
 from seed_data.posts_seed import get_seed_posts
+from seed_data.runway_seed import seed_ramya
 
 
 async def seed():
@@ -47,7 +48,10 @@ async def seed():
 
         await db.commit()
         print(f"Seeded {inserted} posts.")
-        print("Database ready.")
+
+    print("Seeding Runway mock data for Ramya…")
+    await seed_ramya()
+    print("Database ready.")
 
 
 if __name__ == "__main__":

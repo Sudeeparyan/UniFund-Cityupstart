@@ -6,7 +6,19 @@
       "Bash(Get-ChildItem -Path \"d:\\\\Sudeep Aryan\\\\Final-Unimind\\\\unimind-react\" -Force)",
       "Bash(Select-Object Name, FullName, PSIsContainer)",
       "Bash(Get-ChildItem -Path \"d:\\\\Sudeep Aryan\\\\Final-Unimind\\\\unimind-react\" -Recurse -Force)",
-      "Bash(Select-Object FullName)"
+      "Bash(Select-Object FullName)",
+      "Bash(conda info *)",
+      "Bash(chmod +x *)",
+      "Bash(python -c \"from dotenv import load_dotenv; import os; load_dotenv\\(\\); print\\('ENDPOINT:', 'SET' if os.getenv\\('AZURE_ENDPOINT'\\) else 'MISSING'\\); print\\('API_KEY:', 'SET' if os.getenv\\('OPENAI_API_KEY'\\) else 'MISSING'\\); print\\('DEPLOYMENT:', os.getenv\\('DEPLOYMENT_NAME', 'MISSING'\\)\\); print\\('API_VERSION:', os.getenv\\('AZURE_API_VERSION', 'MISSING'\\)\\)\")",
+      "Bash(cd *)",
+      "Bash(/opt/anaconda3/bin/python *)",
+      "Bash(conda run *)",
+      "Bash(python *)",
+      "Bash(npm run *)",
+      "Bash(npm install *)",
+      "Bash(npm list *)",
+      "Bash(awk -F: '$2>354 {print; exit}')",
+      "Bash(sqlite3 *)"
     ]
   }
 }

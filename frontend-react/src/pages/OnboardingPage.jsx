@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { createUniMindScene } from '../lib/scene.js';
+import { createUniFundScene } from '../lib/scene.js';
 
 // ---------- Adaptive question tree ----------
 const Q1 = {
@@ -56,7 +56,7 @@ function SceneHost({ stage, onReady }) {
 
   useEffect(() => {
     if (!ref.current) return;
-    const inst = createUniMindScene(ref.current);
+    const inst = createUniFundScene(ref.current);
     sceneRef.current = inst;
     onReady && onReady(inst);
     return () => inst.destroy();
@@ -246,7 +246,7 @@ function StageLabel({ stage }) {
   };
   const s = map[stage];
   return (
-    <div className="absolute top-7 right-10 z-10 text-right pointer-events-none">
+    <div className="absolute top-4 right-4 sm:top-7 sm:right-10 z-10 text-right pointer-events-none">
       <AnimatePresence mode="wait">
         <motion.div key={stage} initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }} transition={{ duration: 0.6 }}>
           <div className="text-[10px] tracking-[0.32em] text-white/35">{s.kicker}</div>
@@ -265,14 +265,14 @@ function FinalPayoff({ visible }) {
       {visible && (
         <motion.div key="final-payoff" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
           transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1], delay: 0.2 }}
-          className="absolute inset-x-0 bottom-[10%] flex flex-col items-center pointer-events-none select-none">
+          className="absolute inset-x-0 bottom-[6%] sm:bottom-[10%] flex flex-col items-center px-6 text-center pointer-events-none select-none">
           <motion.div initial={{ letterSpacing: '0.35em', opacity: 0 }} animate={{ letterSpacing: '0.12em', opacity: 1 }}
             transition={{ duration: 1.6, delay: 0.4 }} className="text-[11px] uppercase text-white/45">
-            UniMind · Agent Initialized
+            UniFund · Agent Initialized
           </motion.div>
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1.4, delay: 0.7 }}
-            className="mt-3 text-[28px] tracking-tight font-light text-white"
+            className="mt-3 text-[20px] sm:text-[24px] lg:text-[28px] tracking-tight font-light text-white"
             style={{ textShadow: '0 0 28px rgba(123,97,255,0.45), 0 0 50px rgba(0,209,255,0.25)' }}>
             Your AI agent is alive.
           </motion.div>
@@ -312,16 +312,16 @@ function DustOverlay() {
 // ---------- Top brand bar ----------
 function TopBar() {
   return (
-    <div className="absolute top-0 inset-x-0 z-20 px-10 pt-7 flex items-center justify-between">
-      <div className="flex items-center gap-3">
-        <div className="relative">
+    <div className="absolute top-0 inset-x-0 z-20 px-5 sm:px-8 lg:px-10 pt-5 sm:pt-7 flex items-center justify-between">
+      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+        <div className="relative flex-shrink-0">
           <div className="w-6 h-6 rounded-md" style={{ background: 'conic-gradient(from 200deg, #00D1FF, #7B61FF, #FF5FB6, #00D1FF)', filter: 'blur(0.2px)' }} />
           <div className="absolute inset-0 rounded-md" style={{ boxShadow: '0 0 24px rgba(123,97,255,0.55)' }} />
         </div>
-        <div className="text-white text-[14px] tracking-[0.18em] font-medium">UNIMIND</div>
-        <div className="text-white/30 text-[12px] tracking-[0.18em]">/ THE AGENTIC WEB</div>
+        <div className="text-white text-[13px] sm:text-[14px] tracking-[0.18em] font-medium whitespace-nowrap">UNIFUND</div>
+        <div className="hidden sm:block text-white/30 text-[12px] tracking-[0.18em] whitespace-nowrap">/ THE AGENTIC WEB</div>
       </div>
-      <div className="flex items-center gap-6 text-[12px] text-white/45 tracking-wide">
+      <div className="flex items-center gap-3 sm:gap-6 text-[11px] sm:text-[12px] text-white/45 tracking-wide whitespace-nowrap">
         <span>v 0.1 · onboarding</span>
         <span className="hidden md:inline">3 questions · 2 minutes</span>
       </div>
@@ -404,20 +404,20 @@ export default function OnboardingPage({ onEnter }) {
   const progressDiscrete = done ? 100 : Math.round(((stepIndex + 1) / STEPS.length) * 100);
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden bg-[#05070A] text-white">
+    <div className="relative w-screen h-screen overflow-y-auto lg:overflow-hidden bg-[#05070A] text-white">
       <div className="page-bg absolute inset-0" />
       <DustOverlay />
       <TopBar />
 
-      <div className="relative z-10 grid h-full" style={{ gridTemplateColumns: '45fr 55fr' }}>
+      <div className="relative z-10 flex flex-col min-h-screen lg:grid lg:h-full lg:min-h-0 lg:grid-cols-[45fr_55fr]">
         {/* LEFT: conversational form */}
-        <div className="relative flex items-center" style={{ paddingLeft: 80, paddingRight: 40 }}>
+        <div className="form-scroll relative flex items-start lg:overflow-y-auto px-5 sm:px-8 lg:pl-20 lg:pr-10 pt-24 sm:pt-28 pb-16">
           <div className="w-full max-w-[520px]">
 
             {/* Heading */}
             <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}>
               <div className="text-[11px] uppercase tracking-[0.32em] text-white/40">Creating your personal AI</div>
-              <h1 className="mt-3 text-[38px] leading-[1.05] tracking-[-0.02em] font-light text-white/95">
+              <h1 className="mt-3 text-[28px] sm:text-[32px] lg:text-[38px] leading-[1.1] lg:leading-[1.05] tracking-[-0.02em] font-light text-white/95">
                 Let's build{' '}
                 <span style={{ background: 'linear-gradient(135deg, #00D1FF, #7B61FF)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                   your agent
@@ -455,7 +455,7 @@ export default function OnboardingPage({ onEnter }) {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -8 }}
                     transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                    className="rounded-2xl p-5"
+                    className="rounded-2xl p-4 sm:p-5"
                     style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}
                   >
                     <div className="text-[10px] tracking-[0.28em] uppercase text-white/35 mb-2">{current.eyebrow}</div>
@@ -498,7 +498,7 @@ export default function OnboardingPage({ onEnter }) {
                 initial={{ opacity: 0, y: 14 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.9 }}
-                className="rounded-2xl p-6"
+                className="rounded-2xl p-5 sm:p-6"
                 style={{ background: 'linear-gradient(135deg, rgba(0,209,255,0.06), rgba(123,97,255,0.10))', border: '1px solid rgba(0,209,255,0.2)' }}
               >
                 <div className="text-[11px] uppercase tracking-[0.25em] text-white/40">Synthesis complete</div>
@@ -520,7 +520,7 @@ export default function OnboardingPage({ onEnter }) {
                     className="flex-2 flex-grow rounded-full py-3 text-[14px] font-semibold tracking-tight"
                     style={{ background: 'linear-gradient(90deg,#00D1FF 0%, #7B61FF 50%, #FF5FB6 100%)', color: '#0a0d14', boxShadow: '0 10px 40px rgba(123,97,255,0.25)' }}
                   >
-                    Enter UniMind →
+                    Enter UniFund →
                   </button>
                 </div>
               </motion.div>
@@ -534,19 +534,19 @@ export default function OnboardingPage({ onEnter }) {
         </div>
 
         {/* Center divider */}
-        <div className="absolute top-0 bottom-0 z-10 pointer-events-none" style={{ left: '45%' }}>
+        <div className="hidden lg:block absolute top-0 bottom-0 z-10 pointer-events-none" style={{ left: '45%' }}>
           <div className="w-px h-full" style={{ background: 'linear-gradient(180deg, transparent 0%, rgba(255,255,255,0.18) 50%, transparent 100%)', opacity: 0.6 }} />
         </div>
 
         {/* RIGHT: 3D scene */}
-        <div className="relative">
+        <div className="relative h-[46vh] sm:h-[52vh] lg:h-auto">
           <SceneHost stage={stage} />
           <StageLabel stage={stage} />
           <div className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(circle at 50% 55%, transparent 40%, rgba(5,7,10,0.55) 90%)' }} />
           <FinalPayoff visible={done} />
-          <div className="absolute bottom-8 left-10 right-10 flex justify-between items-center text-[10px] tracking-[0.28em] text-white/30">
-            <span>PARTICLES · MOLECULE · DNA · BRAIN</span>
-            <span>RENDER · LIVE</span>
+          <div className="absolute bottom-4 left-4 right-4 sm:bottom-8 sm:left-10 sm:right-10 flex justify-between items-center gap-2 text-[8px] sm:text-[10px] tracking-[0.15em] sm:tracking-[0.28em] text-white/30">
+            <span className="truncate">PARTICLES · MOLECULE · DNA · BRAIN</span>
+            <span className="flex-shrink-0">RENDER · LIVE</span>
           </div>
         </div>
       </div>

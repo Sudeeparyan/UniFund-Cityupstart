@@ -4,8 +4,8 @@
     "fullName": "Sudeep Aryan · Founder",
     "type": 2,
     "icon": "🧠",
-    "bio": "Building UniMind — the first AI that reasons about your future using your past.",
-    "score": 9842
+    "bio": "Building UniFund — the first AI that reasons about your future using your past.",
+    "score": 14280
   },
   {
     "name": "RAHUL",
@@ -130,18 +130,18 @@
   {
     "name": "VINAY",
     "fullName": "Vinay · Student",
-    "type": 0,
-    "icon": "✨",
-    "bio": "Engineering student exploring AI and life simulations. Early adopter.",
-    "score": 1250
+    "type": 2,
+    "icon": "⚡",
+    "bio": "Engineering student exploring AI and life simulations. Early adopter turning ideas into reality.",
+    "score": 11200
   },
   {
     "name": "MASTH",
     "fullName": "Masthan · Student",
-    "type": 0,
-    "icon": "🌱",
-    "bio": "CS undergrad figuring out the right career path. Curious mind.",
-    "score": 1180
+    "type": 2,
+    "icon": "🌀",
+    "bio": "CS undergrad figuring out the right career path. Curious mind with a knack for problem solving.",
+    "score": 10600
   },
   {
     "name": "PRABH",
@@ -166,5 +166,29 @@
     "icon": "◦",
     "bio": "Student at the crossroads — exploring startups, research, and more.",
     "score": 940
+  },
+  {
+    "name": "RAMYA",
+    "fullName": "Ramya · AI Explorer",
+    "type": 2,
+    "icon": "🔮",
+    "bio": "AI enthusiast navigating the intersection of technology and human potential. Building the future one simulation at a time.",
+    "score": 12500
+  },
+  {
+    "name": "SAJU",
+    "fullName": "Saju · Builder",
+    "type": 2,
+    "icon": "🌌",
+    "bio": "Builder at heart. Turns complex ideas into working systems. Thrives at the edge of possibility.",
+    "score": 11800
+  },
+  {
+    "name": "GEETH",
+    "fullName": "Geethika · Rising Star",
+    "type": 2,
+    "icon": "💫",
+    "bio": "Rising star in the agentic web. Connecting knowledge, skills, and ambition to chart an extraordinary path.",
+    "score": 10100
   }
 ]

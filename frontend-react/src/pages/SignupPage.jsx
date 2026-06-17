@@ -20,9 +20,9 @@ export default function SignupPage({ onSignupSuccess, onGoLogin }) {
     setError('');
     try {
       const data = await signup(email, password, name);
-      localStorage.setItem('unimind_token', data.access_token);
-      localStorage.setItem('unimind_name', data.name);
-      localStorage.setItem('unimind_user_id', data.user_id);
+      localStorage.setItem('unifund_token', data.access_token);
+      localStorage.setItem('unifund_name', data.name);
+      localStorage.setItem('unifund_user_id', data.user_id);
       onSignupSuccess({ id: data.user_id, name: data.name });
     } catch (err) {
       setError(err.message || 'Signup failed');
@@ -49,13 +49,12 @@ export default function SignupPage({ onSignupSuccess, onGoLogin }) {
         transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
         className="relative z-10 w-full max-w-md px-6"
       >
-        {/* Logo */}
         <div className="text-center mb-10">
           <div
             className="inline-block text-xs tracking-[0.4em] mb-3 font-medium"
             style={{ color: 'rgba(255,255,255,0.35)' }}
           >
-            UNIMIND
+            UNIFUND
           </div>
           <h1
             className="text-3xl font-light tracking-wider mb-2"
@@ -89,7 +88,7 @@ export default function SignupPage({ onSignupSuccess, onGoLogin }) {
                 type="text"
                 value={name}
                 onChange={e => setName(e.target.value)}
-                placeholder="Sudeep"
+                placeholder="Your name"
                 className="w-full rounded-xl px-4 py-3 text-sm outline-none transition-all"
                 style={{
                   background: 'rgba(255,255,255,0.05)',

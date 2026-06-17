@@ -91,7 +91,7 @@ export function hydrateAgents(nodeKinds) {
         ? ['Explorer','Builder','Collaborator','Community Node','Connector']
         : ['Newcomer','Seeker','Learner','Wanderer','Observer'];
       a.fullName = `${a.name} · ${rolePool[Math.floor(sr(i * 5 + 3) * rolePool.length)]}`;
-      a.bio = `Node #${i}. ${a.fullName.split('·')[1]?.trim()} in the UniMind web.`;
+      a.bio = `Node #${i}. ${a.fullName.split('·')[1]?.trim()} in the UniFund web.`;
     }
   }
 }

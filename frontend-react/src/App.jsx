@@ -1,15 +1,16 @@
 import { useState, useEffect, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import LoginPage from './pages/LoginPage';
-import SignupPage from './pages/SignupPage';
-import { guestLogin, saveOnboarding } from './lib/api';
+import DeveloperLoginPage from './pages/DeveloperLoginPage';
+import { guestLogin, getMe, saveOnboarding } from './lib/api';
 
 const OnboardingPage  = lazy(() => import('./pages/OnboardingPage'));
 const ChatbotPage     = lazy(() => import('./pages/ChatbotPage'));
+const AgentStudioPage = lazy(() => import('./pages/AgentStudioPage'));
 const AgenticWebPage  = lazy(() => import('./pages/AgenticWebPage'));
 const CommunityPage   = lazy(() => import('./pages/CommunityPage'));
 const TimelinePage    = lazy(() => import('./pages/TimelinePage'));
 const RunwayPage      = lazy(() => import('./pages/RunwayPage'));
+const DeveloperPage   = lazy(() => import('./pages/DeveloperPage'));
 
 function PageLoader() {
   return (
@@ -19,6 +20,77 @@ function PageLoader() {
     </div>
   );
 }
+
+// ── Bottom navigation bar ─────────────────────────────────────────────────────
+
+const BOTTOM_NAV = [
+  { key: 'runway',    label: 'Runway'    },
+  { key: 'web',       label: 'Web'       },
+  { key: 'chatbot',   label: 'Agent'     },
+  { key: 'community', label: 'Community' },
+];
+
+function BottomNav({ active, onNavigate }) {
+  return (
+    <motion.div
+      initial={{ x: '-50%', y: 80, opacity: 0 }}
+      animate={{ x: '-50%', y: 0, opacity: 1 }}
+      transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1], delay: 0.15 }}
+      style={{
+        position: 'fixed',
+        bottom: 36,
+        left: '50%',
+        zIndex: 1000,
+        background: '#12121e',
+        borderRadius: 100,
+        padding: '6px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 2,
+        boxShadow: '0 12px 48px rgba(0,0,0,0.65), 0 2px 16px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.07)',
+        border: '1px solid rgba(255,255,255,0.09)',
+        whiteSpace: 'nowrap',
+        fontFamily: 'Manrope, sans-serif',
+      }}>
+      {BOTTOM_NAV.map(item => {
+        const isActive = active === item.key;
+        return (
+          <motion.button key={item.key} onClick={() => onNavigate(item.key)}
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.96 }}
+            style={{
+              position: 'relative',
+              padding: '11px 24px',
+              borderRadius: 100,
+              border: 'none',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              fontSize: 14,
+              fontWeight: isActive ? 600 : 400,
+              color: isActive ? '#0d0d18' : 'rgba(255,255,255,0.52)',
+              background: 'transparent',
+              transition: 'color 0.18s',
+              zIndex: 1,
+            }}>
+            {isActive && (
+              <motion.div layoutId="nav-active"
+                style={{
+                  position: 'absolute', inset: 0,
+                  borderRadius: 100,
+                  background: 'white',
+                  zIndex: -1,
+                }}
+                transition={{ type: 'spring', stiffness: 380, damping: 30 }} />
+            )}
+            {item.label}
+          </motion.button>
+        );
+      })}
+    </motion.div>
+  );
+}
+
+// ── Transition bridge (onboarding → web) ──────────────────────────────────────
 
 function TransitionBridge({ phase }) {
   return (
@@ -31,88 +103,61 @@ function TransitionBridge({ phase }) {
     >
       <motion.div
         animate={
-          phase === 'shrink-in'
-            ? { scale: 1, opacity: 1 }
-            : phase === 'shrink-out'
-            ? { scale: 0.0, opacity: 0 }
-            : { scale: 0, opacity: 0 }
+          phase === 'shrink-in'  ? { scale: 1, opacity: 1 }
+          : phase === 'shrink-out' ? { scale: 0.0, opacity: 0 }
+          : { scale: 0, opacity: 0 }
         }
         transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
         style={{ width: 200, height: 200, borderRadius: '50%', position: 'relative' }}
       >
-        <div
-          style={{
-            position: 'absolute',
-            inset: -40,
-            borderRadius: '50%',
-            background:
-              'radial-gradient(circle, rgba(123,97,255,0.35) 0%, rgba(0,209,255,0.15) 50%, transparent 75%)',
-            filter: 'blur(20px)',
-          }}
-        />
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            borderRadius: '50%',
-            background:
-              'conic-gradient(from 200deg, #00D1FF, #7B61FF, #FF5FB6, #7B61FF, #00D1FF)',
-            filter: 'blur(2px)',
-          }}
-        />
-        <div
-          style={{
-            position: 'absolute',
-            inset: 12,
-            borderRadius: '50%',
-            background:
-              'radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(180,160,255,0.7) 50%, transparent 80%)',
-          }}
-        />
-        <div
-          style={{
-            position: 'absolute',
-            inset: '35%',
-            borderRadius: '50%',
-            background: 'white',
-            boxShadow: '0 0 40px 20px rgba(255,255,255,0.6)',
-          }}
-        />
+        <div style={{ position: 'absolute', inset: -40, borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(123,97,255,0.35) 0%, rgba(0,209,255,0.15) 50%, transparent 75%)',
+          filter: 'blur(20px)' }} />
+        <div style={{ position: 'absolute', inset: 0, borderRadius: '50%',
+          background: 'conic-gradient(from 200deg, #00D1FF, #7B61FF, #FF5FB6, #7B61FF, #00D1FF)',
+          filter: 'blur(2px)' }} />
+        <div style={{ position: 'absolute', inset: 12, borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(180,160,255,0.7) 50%, transparent 80%)' }} />
+        <div style={{ position: 'absolute', inset: '35%', borderRadius: '50%',
+          background: 'white', boxShadow: '0 0 40px 20px rgba(255,255,255,0.6)' }} />
       </motion.div>
     </motion.div>
   );
 }
 
+// ── App ───────────────────────────────────────────────────────────────────────
+
+const MAIN_TABS = ['runway', 'web', 'chatbot', 'community'];
+
 export default function App() {
-  // page: 'login' | 'signup' | 'chatbot' | 'onboarding' | 'transitioning' | 'agentic' | 'community' | 'timeline' | 'runway'
-  // Auth skipped — start directly at onboarding
-  const [page, setPage] = useState('onboarding');
+  const isDeveloperRoute = window.location.pathname === '/developer';
+  // page: 'onboarding' | 'transitioning' | 'web' | 'chatbot' | 'community' | 'timeline' | 'runway' | 'developer-login' | 'developer'
+  // Start directly at onboarding — no login required. Guest token obtained silently.
+  const [page, setPage] = useState(isDeveloperRoute ? 'developer-login' : 'onboarding');
   const [bridgePhase, setBridgePhase] = useState('idle');
   const [isExiting, setIsExiting] = useState(false);
   const [userName, setUserName] = useState('USER');
-  const [authUser, setAuthUser] = useState(null);
   const [simulationData, setSimulationData] = useState(null);
   const [simulationKnowledgeCount, setSimulationKnowledgeCount] = useState(null);
-  // Where chatbot should return after completion (onboarding for new users, agentic for returning)
-  const [chatbotCompleteTarget, setChatbotCompleteTarget] = useState('onboarding');
+  const [chatbotCompleteTarget, setChatbotCompleteTarget] = useState('web');
 
-  // Auto-obtain a guest token so all protected API calls work without real auth
+  // Silently obtain a guest token so all API calls work without login
   useEffect(() => {
+    if (isDeveloperRoute) return;
     async function ensureToken() {
-      const existing = localStorage.getItem('unimind_token');
+      const existing = localStorage.getItem('unifund_token');
       if (existing) {
-        // Verify it still works; if not, refresh it
         try {
-          const { getMe } = await import('./lib/api');
-          await getMe();
+          const user = await getMe();
+          if (user?.name) setUserName(user.name.toUpperCase());
           return;
         } catch {
-          localStorage.removeItem('unimind_token');
+          localStorage.removeItem('unifund_token');
         }
       }
       try {
         const { access_token, name } = await guestLogin();
-        localStorage.setItem('unimind_token', access_token);
+        localStorage.setItem('unifund_token', access_token);
         if (name) setUserName(name.toUpperCase());
       } catch (e) {
         console.warn('Guest login failed — backend may be down:', e.message);
@@ -121,104 +166,47 @@ export default function App() {
     ensureToken();
   }, []);
 
-  // Auth skipped — these handlers are unused but kept for future re-enable
-  function handleLoginSuccess(user) {
-    setAuthUser(user);
-    setUserName(user.name.toUpperCase());
-    setPage(user.onboarding_complete ? 'agentic' : 'onboarding');
-  }
-
-  function handleSignupSuccess(user) {
-    setAuthUser(user);
-    setUserName(user.name.toUpperCase());
-    setChatbotCompleteTarget('onboarding');
-    setPage('chatbot');
-  }
-
   async function handleEnter(answers) {
-    // Save onboarding answers to backend (non-blocking)
     if (answers) {
       saveOnboarding(answers).catch(e => console.warn('Could not save onboarding:', e));
     }
-
     setIsExiting(true);
     setBridgePhase('shrink-in');
     setPage('transitioning');
-
     setTimeout(() => setBridgePhase('shrink-out'), 400);
     setTimeout(() => setBridgePhase('hold'), 800);
-    setTimeout(() => {
-      setPage('agentic');
-      setBridgePhase('idle');
-      setIsExiting(false);
-    }, 1000);
+    setTimeout(() => { setPage('web'); setBridgePhase('idle'); setIsExiting(false); }, 1000);
   }
+
+  const showBottomNav = MAIN_TABS.includes(page);
 
   return (
     <div style={{ width: '100vw', height: '100vh', overflow: 'hidden', background: '#02030A' }}>
-      <AnimatePresence>
-        {/* Auth skipped — login/signup pages commented out
-        {page === 'login' && (
-          <motion.div key="login" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.4 }} style={{ position: 'absolute', inset: 0 }}>
-            <LoginPage onLoginSuccess={handleLoginSuccess} onGoSignup={() => setPage('signup')} />
-          </motion.div>
-        )}
-        {page === 'signup' && (
-          <motion.div key="signup" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.4 }} style={{ position: 'absolute', inset: 0 }}>
-            <SignupPage onSignupSuccess={handleSignupSuccess} onGoLogin={() => setPage('login')} />
-          </motion.div>
-        )}
-        */}
-
-        {page === 'chatbot' && (
-          <motion.div
-            key="chatbot"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.4 }}
-            style={{ position: 'absolute', inset: 0 }}
-          >
-            <Suspense fallback={<PageLoader />}>
-              <ChatbotPage
-                userName={userName}
-                onComplete={() => setPage(chatbotCompleteTarget)}
-                onSkip={() => setPage(chatbotCompleteTarget === 'onboarding' ? 'agentic' : chatbotCompleteTarget)}
-                onHome={() => setPage('agentic')}
-              />
-            </Suspense>
-          </motion.div>
-        )}
+      <AnimatePresence mode="wait">
 
         {(page === 'onboarding' || page === 'transitioning') && (
-          <motion.div
-            key="page1"
-            initial={{ opacity: 1 }}
-            animate={{ opacity: isExiting ? 0 : 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.4, ease: 'easeIn' }}
-            style={{ position: 'absolute', inset: 0 }}
-          >
+          <motion.div key="onboarding" initial={{ opacity: 1 }} animate={{ opacity: isExiting ? 0 : 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.4, ease: 'easeIn' }} style={{ position: 'absolute', inset: 0 }}>
             <Suspense fallback={<PageLoader />}>
               <OnboardingPage onEnter={handleEnter} />
             </Suspense>
           </motion.div>
         )}
 
-        {page === 'agentic' && (
-          <motion.div
-            key="page2"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            style={{ position: 'absolute', inset: 0 }}
-          >
+        {page === 'developer-login' && (
+          <motion.div key="developer-login" initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }} transition={{ duration:0.4 }} style={{ position:'absolute', inset:0 }}>
+            <DeveloperLoginPage onSuccess={() => setPage('developer')} />
+          </motion.div>
+        )}
+
+        {page === 'web' && (
+          <motion.div key="web" initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }} transition={{ duration:0.5, delay:0.1 }} style={{ position:'absolute', inset:0, paddingBottom:88 }}>
             <Suspense fallback={<PageLoader />}>
               <AgenticWebPage
                 userName={userName}
                 onNavigateCommunity={() => setPage('community')}
-                onNavigateChatbot={() => setPage('chatbot')}
+                onNavigateChatbot={() => { setChatbotCompleteTarget('web'); setPage('chatbot'); }}
                 onNavigateRunway={() => setPage('runway')}
+                onNavigateDeveloper={() => setPage('developer')}
                 onNavigateTimeline={(data, kCount) => {
                   setSimulationData(data || null);
                   setSimulationKnowledgeCount(kCount ?? null);
@@ -229,67 +217,61 @@ export default function App() {
           </motion.div>
         )}
 
-        {page === 'timeline' && (
-          <motion.div
-            key="timeline"
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.5 }}
-            style={{ position: 'absolute', inset: 0 }}
-          >
+        {page === 'chatbot' && (
+          <motion.div key="chatbot" initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }} transition={{ duration:0.35 }} style={{ position:'absolute', inset:0, paddingBottom:88 }}>
             <Suspense fallback={<PageLoader />}>
-              <TimelinePage
-                simulationData={simulationData}
-                knowledgeCount={simulationKnowledgeCount}
-                onBack={() => setPage('agentic')}
-                onChatbot={() => {
-                  setChatbotCompleteTarget('agentic');
-                  setPage('chatbot');
-                }}
+              <AgentStudioPage
+                userName={userName}
+                onBack={() => setPage(chatbotCompleteTarget)}
               />
             </Suspense>
           </motion.div>
         )}
 
         {page === 'community' && (
-          <motion.div
-            key="community"
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.5 }}
-            style={{ position: 'absolute', inset: 0 }}
-          >
+          <motion.div key="community" initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }} transition={{ duration:0.35 }} style={{ position:'absolute', inset:0, paddingBottom:88 }}>
             <Suspense fallback={<PageLoader />}>
               <CommunityPage
                 userName={userName}
-                onBack={() => setPage('agentic')}
-                onHome={() => setPage('agentic')}
+                onBack={() => setPage('web')}
+                onHome={() => setPage('web')}
               />
             </Suspense>
           </motion.div>
         )}
 
         {page === 'runway' && (
-          <motion.div
-            key="runway"
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.5 }}
-            style={{ position: 'absolute', inset: 0 }}
-          >
+          <motion.div key="runway" initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }} transition={{ duration:0.35 }} style={{ position:'absolute', inset:0, paddingBottom:88 }}>
             <Suspense fallback={<PageLoader />}>
-              <RunwayPage
-                userName={userName}
-                onBack={() => setPage('agentic')}
-                onHome={() => setPage('agentic')}
+              <RunwayPage userName={userName} />
+            </Suspense>
+          </motion.div>
+        )}
+
+        {page === 'timeline' && (
+          <motion.div key="timeline" initial={{ opacity:0, y:12 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, y:-8 }} transition={{ duration:0.5 }} style={{ position:'absolute', inset:0 }}>
+            <Suspense fallback={<PageLoader />}>
+              <TimelinePage
+                simulationData={simulationData}
+                knowledgeCount={simulationKnowledgeCount}
+                onBack={() => setPage('web')}
+                onChatbot={() => { setChatbotCompleteTarget('web'); setPage('chatbot'); }}
               />
             </Suspense>
           </motion.div>
         )}
+
+        {page === 'developer' && (
+          <motion.div key="developer" initial={{ opacity:0, y:12 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, y:-8 }} transition={{ duration:0.5 }} style={{ position:'absolute', inset:0 }}>
+            <Suspense fallback={<PageLoader />}>
+              <DeveloperPage onBack={() => setPage('web')} />
+            </Suspense>
+          </motion.div>
+        )}
+
       </AnimatePresence>
+
+      {showBottomNav && <BottomNav active={page} onNavigate={setPage} />}
 
       <TransitionBridge phase={bridgePhase} />
     </div>
