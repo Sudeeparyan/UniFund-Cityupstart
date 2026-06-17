@@ -5,6 +5,7 @@ import { guestLogin, getMe, saveOnboarding } from './lib/api';
 
 const OnboardingPage  = lazy(() => import('./pages/OnboardingPage'));
 const ChatbotPage     = lazy(() => import('./pages/ChatbotPage'));
+const AgentStudioPage = lazy(() => import('./pages/AgentStudioPage'));
 const AgenticWebPage  = lazy(() => import('./pages/AgenticWebPage'));
 const CommunityPage   = lazy(() => import('./pages/CommunityPage'));
 const TimelinePage    = lazy(() => import('./pages/TimelinePage'));
@@ -25,21 +26,20 @@ function PageLoader() {
 const BOTTOM_NAV = [
   { key: 'runway',    label: 'Runway'    },
   { key: 'web',       label: 'Web'       },
-  { key: 'chatbot',   label: 'Chatbot'   },
+  { key: 'chatbot',   label: 'Agent'     },
   { key: 'community', label: 'Community' },
 ];
 
 function BottomNav({ active, onNavigate }) {
   return (
     <motion.div
-      initial={{ y: 80, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
+      initial={{ x: '-50%', y: 80, opacity: 0 }}
+      animate={{ x: '-50%', y: 0, opacity: 1 }}
       transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1], delay: 0.15 }}
       style={{
         position: 'fixed',
         bottom: 36,
         left: '50%',
-        transform: 'translateX(-50%)',
         zIndex: 1000,
         background: '#12121e',
         borderRadius: 100,
@@ -220,11 +220,9 @@ export default function App() {
         {page === 'chatbot' && (
           <motion.div key="chatbot" initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }} transition={{ duration:0.35 }} style={{ position:'absolute', inset:0, paddingBottom:88 }}>
             <Suspense fallback={<PageLoader />}>
-              <ChatbotPage
+              <AgentStudioPage
                 userName={userName}
-                onComplete={() => setPage(chatbotCompleteTarget)}
-                onSkip={() => setPage(chatbotCompleteTarget)}
-                onHome={() => setPage('web')}
+                onBack={() => setPage(chatbotCompleteTarget)}
               />
             </Suspense>
           </motion.div>

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { createUniFundWeb } from '../lib/scene2.js';
 import { AGENTS, USER_IDX, hydrateAgents, bfsPath, pathToEdgeIndices, setUserName } from '../lib/agentData.js';
 import { runSimulate } from '../lib/api.js';
+import { SIMULATION_SCENARIOS, PLATFORM_STATS } from '../data/knowledgeBase.js';
 
 // ---------- Scene host ----------
 function WebSceneHost({ onReady }) {
@@ -699,7 +700,7 @@ function LeaderboardButton({ onOpen }) {
       </div>
       <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] flex items-center justify-center font-medium"
         style={{ background:'linear-gradient(135deg,#00D1FF,#7B61FF)', color:'white' }}>
-        12
+        7
       </span>
     </motion.button>
   );
@@ -708,12 +709,13 @@ function LeaderboardButton({ onOpen }) {
 // ---------- Leaderboard modal ----------
 function LeaderboardModal({ open, onClose }) {
   const rows = [
-    { rank:1,    name:'Sudeep Aryan · Founder',  score:14280, color:'#FFD54F', you:true },
-    { rank:2,    name:'ARIA · Career Switch',    score:9842,  color:'#B388FF' },
-    { rank:3,    name:'NOX · Founder',            score:9120,  color:'#B388FF' },
-    { rank:4,    name:'VEDA · Masters Abroad',    score:8633,  color:'#4FC3F7' },
-    { rank:5,    name:'ORION · Founder',          score:7980,  color:'#4FC3F7' },
-    { rank:6,    name:'LUME · Personal Growth',   score:7301,  color:'#4FC3F7' },
+    { rank:1, name:'Sudeep Aryan · Founder',  score:14280, color:'#FFD54F', you:true },
+    { rank:2, name:'Ramya · AI Explorer',     score:12500, color:'#FF5FB6' },
+    { rank:3, name:'Saju · Builder',          score:11800, color:'#FF5FB6' },
+    { rank:4, name:'Vinay · Student',         score:11200, color:'#FF5FB6' },
+    { rank:5, name:'Masthan · Student',       score:10600, color:'#FF5FB6' },
+    { rank:6, name:'Geethika · Rising Star',  score:10100, color:'#FF5FB6' },
+    { rank:7, name:'ARIA · Career Switch',    score:9842,  color:'#B388FF' },
   ];
   return (
     <AnimatePresence>
@@ -981,7 +983,7 @@ function PortalOverlay({ t }) {
 }
 
 // ---------- Cinematic portal next screen ----------
-function PortalNext({ visible, onReset, onTimeline }) {
+function PortalNext({ visible, onReset, onTimeline, isAsk }) {
   return (
     <AnimatePresence>
       {visible && (
@@ -1008,7 +1010,7 @@ function PortalNext({ visible, onReset, onTimeline }) {
               animate={{ opacity:0.6, letterSpacing:'0.38em' }}
               transition={{ duration:1.4, delay:0.5 }}
               className="text-[10px] uppercase mono text-white/60">
-              UniFund · Processing Complete
+              {isAsk ? 'UniFund · Query Resolved' : 'UniFund · Processing Complete'}
             </motion.div>
 
             <motion.div
@@ -1017,7 +1019,9 @@ function PortalNext({ visible, onReset, onTimeline }) {
               transition={{ duration:1.7, delay:0.9, ease:[0.22,1,0.36,1] }}
               className="mt-5 text-[50px] leading-[1.05] tracking-tight font-light text-white"
               style={{ textShadow:'0 0 40px rgba(123,97,255,0.55),0 0 80px rgba(0,209,255,0.22)' }}>
-              Your <span className="agent-grad">timeline</span><br/>is forming.
+              {isAsk
+                ? <>Your <span className="agent-grad">answer</span><br/>is ready.</>
+                : <>Your <span className="agent-grad">timeline</span><br/>is forming.</>}
             </motion.div>
 
             <motion.div
@@ -1025,8 +1029,9 @@ function PortalNext({ visible, onReset, onTimeline }) {
               animate={{ opacity:0.6, y:0 }}
               transition={{ duration:1.2, delay:1.6 }}
               className="mt-5 text-[14px] text-white/60 leading-relaxed">
-              2,847 lifetimes analyzed. 3 optimal paths identified.<br/>
-              The collective has spoken.
+              {isAsk
+                ? <>2,847 lifetimes analyzed. Your personalised answer is ready.<br/>The collective has spoken.</>
+                : <>2,847 lifetimes analyzed. 3 optimal paths identified.<br/>The collective has spoken.</>}
             </motion.div>
 
             <motion.div
@@ -1052,7 +1057,7 @@ function PortalNext({ visible, onReset, onTimeline }) {
                   color: '#060810',
                   boxShadow: '0 10px 40px rgba(123,97,255,0.38)',
                 }}>
-                Continue to Your Timeline →
+                {isAsk ? 'View Your Results →' : 'Continue to Your Timeline →'}
               </motion.button>
               <button
                 onClick={onReset}
@@ -1064,6 +1069,246 @@ function PortalNext({ visible, onReset, onTimeline }) {
         </motion.div>
       )}
     </AnimatePresence>
+  );
+}
+
+// ---------- Ask results page (shown after the core animation, not in the sidebar) ----------
+function AskResultsPage({ query, result, onBack }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.5 }}
+      className="absolute inset-0 z-[90] overflow-y-auto"
+      style={{ background: '#02030A' }}
+    >
+      <div className="pointer-events-none fixed inset-0" style={{
+        background:
+          'radial-gradient(55% 40% at 20% 10%, rgba(123,97,255,0.09) 0%, transparent 65%),' +
+          'radial-gradient(45% 35% at 80% 80%, rgba(0,209,255,0.06) 0%, transparent 60%)',
+      }} />
+
+      {/* Top bar */}
+      <div className="relative flex items-center justify-between px-10 py-5" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <div className="w-6 h-6 rounded-md" style={{ background: 'conic-gradient(from 200deg, #00D1FF, #7B61FF, #FF5FB6, #00D1FF)', filter: 'blur(0.2px)' }} />
+            <div className="absolute inset-0 rounded-md" style={{ boxShadow: '0 0 24px rgba(123,97,255,0.55)' }} />
+          </div>
+          <span className="text-[14px] tracking-[0.18em] font-medium text-white">UNIFUND</span>
+          <span className="text-white/30 text-[12px] tracking-[0.18em]">/</span>
+          <span className="text-[12px] tracking-[0.22em]" style={{ background: 'linear-gradient(135deg, #00D1FF, #7B61FF)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+            ASK RESULTS
+          </span>
+        </div>
+        <button
+          onClick={onBack}
+          className="text-xs tracking-wider transition-colors flex items-center gap-2"
+          style={{ color: 'rgba(255,255,255,0.3)' }}
+          onMouseEnter={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.65)'; }}
+          onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.3)'; }}
+        >
+          ← Return to the Web
+        </button>
+      </div>
+
+      <div className="relative max-w-2xl mx-auto px-8 py-10">
+        {/* Query echo */}
+        <div className="text-center mb-8">
+          <div className="text-[9px] tracking-[0.45em] uppercase mb-3" style={{ color: 'rgba(255,255,255,0.3)' }}>
+            UniFund · Query Resolved · 2,847 Lifetimes Analyzed
+          </div>
+          <h1 className="text-[26px] leading-snug tracking-tight font-light" style={{ color: 'rgba(255,255,255,0.9)' }}>
+            “{query}”
+          </h1>
+        </div>
+
+        {/* Citation bar */}
+        <div className="flex items-center gap-2 mb-5 px-4 py-2.5 rounded-xl"
+          style={{ background: 'rgba(0,209,255,0.06)', border: '1px solid rgba(0,209,255,0.18)' }}>
+          <span className="text-[13px]">🌐</span>
+          <span className="text-[11px] text-white/55">Based on</span>
+          <span className="text-[11px] font-mono font-bold" style={{ color: '#00D1FF' }}>{result.basedOn}</span>
+          <span className="text-[11px] text-white/35">· {result.confidence}% confidence</span>
+        </div>
+
+        {/* Main answer */}
+        <div className="rounded-2xl p-5 mb-5" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.09)' }}>
+          <div className="text-[9px] tracking-[0.3em] text-white/28 uppercase mb-2">Simulation Result</div>
+          <p className="text-[14px] text-white/80 leading-relaxed">{result.insight}</p>
+        </div>
+
+        {/* Paths */}
+        {result.paths && result.paths.map((path, i) => (
+          <motion.div key={path.title} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.1 + 0.15 }}
+            className="rounded-2xl p-5 mb-4"
+            style={{ background: 'rgba(255,255,255,0.025)', border: `1px solid ${path.color || '#7B61FF'}25` }}>
+            <div className="flex items-center justify-between mb-2.5">
+              <div className="flex items-center gap-2.5">
+                <span className="text-xl">{path.icon}</span>
+                <span className="text-[14px] font-semibold text-white/85">{path.title}</span>
+              </div>
+              <div className="text-right">
+                <div className="text-[14px] font-mono font-bold" style={{ color: path.color || '#00D1FF' }}>{path.probability}%</div>
+                <div className="text-[8px] text-white/25 font-mono">probability</div>
+              </div>
+            </div>
+            <div className="h-1.5 rounded-full mb-2.5 overflow-hidden" style={{ background: 'rgba(255,255,255,0.05)' }}>
+              <motion.div initial={{ width: 0 }} animate={{ width: `${path.probability}%` }}
+                transition={{ duration: 0.8, delay: i * 0.1 + 0.35 }}
+                className="h-full rounded-full" style={{ background: `linear-gradient(90deg, ${path.color || '#7B61FF'}, #00D1FF)` }} />
+            </div>
+            <p className="text-[12px] text-white/55 mb-2.5">{path.description}</p>
+            {path.companies && path.companies.length > 0 && (
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[8px] text-white/22 font-mono">COMPANIES:</span>
+                {path.companies.map(c => (
+                  <span key={c} className="text-[9px] px-2 py-0.5 rounded-full font-mono"
+                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.45)' }}>
+                    {c}
+                  </span>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        ))}
+
+        {/* Timing */}
+        {result.timing && (
+          <div className="rounded-2xl p-4 mb-4"
+            style={{ background: 'rgba(255,213,79,0.06)', border: '1px solid rgba(255,213,79,0.2)' }}>
+            <div className="text-[8px] tracking-[0.3em] text-[#FFD54F]/60 uppercase mb-1.5">Optimal Timing</div>
+            <div className="text-[12px] text-white/65">{result.timing}</div>
+          </div>
+        )}
+
+        {/* DEMO: Company cards */}
+        {result.isDemoResult && result.companyCards && (
+          <div className="mb-5">
+            <div className="text-[8px] tracking-[0.3em] text-white/25 uppercase mb-3">🏢 Top Companies Hiring AI/ML Interns</div>
+            <div className="grid grid-cols-2 gap-3">
+              {result.companyCards.map((co, i) => (
+                <motion.div key={co.name}
+                  initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.06 + 0.2 }}
+                  className="rounded-xl p-3.5"
+                  style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div>
+                      <span className="text-[12px] font-semibold text-white/85">{co.name}</span>
+                      <span className="text-[10px] text-white/35 ml-1.5">{co.city}</span>
+                    </div>
+                    <span className="text-[8px] font-mono px-1.5 py-0.5 rounded"
+                      style={{ background: 'rgba(74,222,128,0.1)', color: '#4ADE80', border: '1px solid rgba(74,222,128,0.25)' }}>
+                      {co.count} hired
+                    </span>
+                  </div>
+                  <div className="h-1 rounded-full mb-2 overflow-hidden" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                    <motion.div initial={{ width: 0 }} animate={{ width: `${co.bar}%` }}
+                      transition={{ duration: 0.8, delay: i * 0.06 + 0.4 }}
+                      className="h-full rounded-full"
+                      style={{ background: 'linear-gradient(90deg, #00D1FF, #7B61FF)' }} />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex gap-1 flex-wrap">
+                      {co.skills.map(s => (
+                        <span key={s} className="text-[7px] px-1.5 py-0.5 rounded-full font-mono"
+                          style={{ background: 'rgba(123,97,255,0.12)', color: '#B388FF', border: '1px solid rgba(123,97,255,0.22)' }}>
+                          {s}
+                        </span>
+                      ))}
+                    </div>
+                    <span className="text-[8px] font-mono text-white/25 flex-shrink-0 ml-2">~{co.response}</span>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* DEMO: Top skills */}
+        {result.isDemoResult && result.topSkills && (
+          <div className="rounded-2xl p-5 mb-5"
+            style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)' }}>
+            <div className="text-[8px] tracking-[0.3em] text-white/25 uppercase mb-3">🎯 Skills to Focus On</div>
+            <div className="space-y-2.5">
+              {result.topSkills.map((sk, i) => (
+                <div key={sk.name} className="flex items-center gap-3">
+                  <span className="text-[10px] font-mono w-3 text-white/25">{i + 1}</span>
+                  <span className="text-[11px] text-white/70 w-40 flex-shrink-0">{sk.name}</span>
+                  <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                    <motion.div initial={{ width: 0 }} animate={{ width: `${sk.pct}%` }}
+                      transition={{ duration: 0.7, delay: i * 0.06 + 0.3 }}
+                      className="h-full rounded-full" style={{ background: sk.color }} />
+                  </div>
+                  <span className="text-[9px] font-mono flex-shrink-0" style={{ color: sk.color }}>{sk.pct}%</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Similar profiles */}
+        {result.similarProfiles && result.similarProfiles.length > 0 && (
+          <div className="rounded-2xl p-5 mb-5"
+            style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)' }}>
+            <div className="text-[8px] tracking-[0.3em] text-white/25 uppercase mb-3">
+              {result.isDemoResult ? '👥 Similar Student Paths' : 'Similar Profiles'}
+            </div>
+            <div className="space-y-3">
+              {result.similarProfiles.map((p, i) => (
+                <div key={i} className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-[11px]"
+                    style={{ background: `rgba(${i===0?'0,209,255':i===1?'123,97,255':'255,95,182'},0.15)`, border: `1px solid rgba(${i===0?'0,209,255':i===1?'123,97,255':'255,95,182'},0.35)` }}>
+                    {(p.name||'?')[0]}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    {result.isDemoResult ? (
+                      <>
+                        <div className="text-[12px] text-white/80 font-medium">{p.name}</div>
+                        <div className="text-[10px] text-white/35">{p.uni} · {p.company}</div>
+                        <div className="text-[9px] font-mono text-white/25 mt-0.5">{p.key}</div>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-[12px] text-white/70">{p.name}</span>
+                        <span className="text-[10px] text-white/30 ml-2">{p.path}</span>
+                      </>
+                    )}
+                  </div>
+                  <span className="text-[10px] font-mono flex-shrink-0" style={{ color: '#4ADE80' }}>
+                    {result.isDemoResult ? `${p.match}% match` : p.outcome}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* DEMO: Agent insight */}
+        {result.isDemoResult && result.agentInsight && (
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="rounded-2xl p-5 mb-6"
+            style={{ background: 'rgba(255,213,79,0.06)', border: '1px solid rgba(255,213,79,0.22)' }}>
+            <div className="text-[8px] tracking-[0.3em] text-[#FFD54F]/60 uppercase mb-2">⚡ Your Agent's Insight</div>
+            <p className="text-[12px] text-white/65 leading-relaxed">{result.agentInsight}</p>
+          </motion.div>
+        )}
+
+        {/* Footer */}
+        <div className="flex flex-col items-center gap-4 mt-8 mb-12">
+          <div className="h-px w-full" style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.10), transparent)' }} />
+          <button onClick={onBack}
+            className="px-6 py-3 rounded-full text-sm font-semibold tracking-tight transition-all"
+            style={{ background: 'linear-gradient(90deg, #00D1FF, #7B61FF)', color: '#060810', boxShadow: '0 8px 32px rgba(123,97,255,0.28)' }}>
+            Return to the Web →
+          </button>
+        </div>
+      </div>
+    </motion.div>
   );
 }
 
@@ -1094,6 +1339,241 @@ function DustOverlay() {
   );
 }
 
+// ---------- Demo query & hardcoded result ----------
+
+const DEMO_QUERY = "I am planning to apply for AI/ML internships in Ireland from next month onwards. When is the best time, which companies should I target, and what skills should I focus on?";
+
+const DEMO_RESULT = {
+  isDemoResult: true,
+  basedOn: '312 student experiences',
+  dataPoints: '1,847',
+  confidence: 94,
+  insight: 'Best months to apply: September–October (Jan start) and January–February (Summer start). Peak hiring: companies open roles 3–4 months before start. Avoid December and July–August.',
+  timing: 'Apply window opens in ~6 weeks. Google and Microsoft recommended first — highest match for your profile.',
+  paths: [
+    {
+      title: 'Early Bird (Sept–Oct)',
+      probability: 78,
+      color: '#00D1FF',
+      icon: '📅',
+      description: 'Apply Sept–Oct for January internship starts. Highest acceptance rates in this window.',
+      companies: ['Google', 'Stripe', 'Microsoft'],
+    },
+    {
+      title: 'Spring Window (Jan–Feb)',
+      probability: 65,
+      color: '#7B61FF',
+      icon: '🌱',
+      description: 'January–February window for Summer internships. Large headcount, high competition.',
+      companies: ['Workday', 'Accenture AI', 'HubSpot'],
+    },
+  ],
+  companyCards: [
+    { name: 'Google Ireland',   city: 'Dublin', count: 23, response: '2 weeks',  skills: ['Python', 'TensorFlow', 'LLMs'],    bar: 100 },
+    { name: 'Microsoft',        city: 'Dublin', count: 31, response: '3 weeks',  skills: ['Azure ML', 'Python', 'PyTorch'],   bar: 95  },
+    { name: 'Accenture AI Hub', city: 'Dublin', count: 27, response: '1 week',   skills: ['NLP', 'Computer Vision'],          bar: 88  },
+    { name: 'Stripe',           city: 'Dublin', count: 14, response: '10 days',  skills: ['Python', 'Statistical Modelling'], bar: 72  },
+    { name: 'Workday',          city: 'Dublin', count: 18, response: '3 weeks',  skills: ['ML Pipelines', 'Data Eng'],        bar: 65  },
+    { name: 'HubSpot',          city: 'Dublin', count: 9,  response: '2 weeks',  skills: ['Data Science', 'Python'],          bar: 42  },
+  ],
+  topSkills: [
+    { name: 'Python',                pct: 94, color: '#00D1FF' },
+    { name: 'ML Fundamentals',       pct: 87, color: '#7B61FF' },
+    { name: 'LLMs / Prompt Eng.',    pct: 79, color: '#FF5FB6' },
+    { name: 'SQL & Data Wrangling',  pct: 71, color: '#4ADE80' },
+    { name: 'Git & Version Control', pct: 68, color: '#FFD54F' },
+    { name: 'NLP / CV / MLOps',      pct: 55, color: '#B388FF' },
+  ],
+  similarProfiles: [
+    { name: 'Aoife Murphy',  uni: 'NCI, 2024',  company: 'Google',    match: 89, key: 'offer in 12 days' },
+    { name: 'Rahul Sharma',  uni: 'UCD, 2024',  company: 'Workday',   match: 76, key: 'top-10% Kaggle project' },
+    { name: 'Sarah Chen',    uni: 'TCD, 2023',  company: 'Microsoft', match: 72, key: 'Azure certified' },
+  ],
+  agentInsight: "Based on your current profile (Agent Level: MAX), your skills in Python and ML already match 4 of the 6 top companies. Your strongest application window opens in 6 weeks. Recommend applying to Google and Microsoft first — highest match rate for your profile.",
+};
+
+// ---------- Simulator Panel ----------
+
+// Builds the same result shape the panel used to render inline — now handed
+// off to the parent so it can be shown on a dedicated page after the core animation.
+function buildAskResult(queryText, isDemo) {
+  if (isDemo || queryText.trim() === DEMO_QUERY.trim()) return DEMO_RESULT;
+
+  const lower = queryText.toLowerCase();
+  let scenario = SIMULATION_SCENARIOS.find(s =>
+    s.query.toLowerCase().split(' ').some(w => lower.includes(w) && w.length > 4)
+  ) || SIMULATION_SCENARIOS[Math.floor(Math.random() * SIMULATION_SCENARIOS.length)];
+  const pathColors = ['#00D1FF', '#7B61FF', '#FF5FB6', '#4ADE80'];
+  const pathIcons  = ['🏢', '🚀', '🌱', '🎓'];
+  const r = scenario.result || {};
+  return {
+    basedOn: `${r.basedOn || '200'} agents`,
+    confidence: Math.floor(72 + Math.random() * 20),
+    insight: r.keyInsight || r.summary || 'The agentic web has identified key patterns in your query.',
+    paths: (r.topPaths || []).map((p, i) => ({
+      title: p.title,
+      probability: Math.round((typeof p.probability === 'number' ? p.probability : 0.5) * 100),
+      description: p.timeline || '',
+      companies: p.companies || [],
+      color: pathColors[i % pathColors.length],
+      icon: pathIcons[i % pathIcons.length],
+    })),
+    timing: r.optimalTiming || null,
+    similarProfiles: (r.similarProfiles || []).map(name => ({
+      name: `Agent of ${name}`,
+      path: 'Similar trajectory',
+      outcome: `+${Math.floor(Math.random() * 50 + 20)}% match`,
+    })),
+  };
+}
+
+function SimulatorPanel({ open, onClose, userName, onAskComplete }) {
+  const [input, setInput] = useState('');
+
+  function handleDemoClick() {
+    setInput(DEMO_QUERY);
+  }
+
+  function handleRun() {
+    handleRunWithInput(input, false);
+  }
+
+  function handleRunWithInput(queryText, isDemo) {
+    if (!queryText.trim()) return;
+    const resultData = buildAskResult(queryText, isDemo);
+    onAskComplete(resultData, queryText);
+    setInput('');
+  }
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <>
+          {/* Backdrop */}
+          <motion.div key="sim-backdrop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="absolute inset-0 z-40 pointer-events-auto"
+            style={{ background: 'rgba(2,3,10,0.55)', backdropFilter: 'blur(2px)' }} />
+
+          {/* Panel */}
+          <motion.div key="sim-panel"
+            initial={{ x: '100%', opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: '100%', opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 280, damping: 30 }}
+            className="absolute right-0 top-0 bottom-0 z-50 pointer-events-auto flex flex-col"
+            style={{ width: 420, background: 'rgba(5,8,18,0.97)', borderLeft: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(28px)', overflowY: 'auto', scrollbarWidth: 'none' }}>
+
+            {/* Header */}
+            <div className="px-7 pt-8 pb-5 flex items-start justify-between flex-shrink-0"
+              style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-[10px] tracking-[0.35em] font-mono text-white/30 uppercase">Simulation Studio</span>
+                  <span className="text-[8px] px-2 py-0.5 rounded-full font-mono"
+                    style={{ background: 'rgba(0,209,255,0.12)', color: '#00D1FF', border: '1px solid rgba(0,209,255,0.25)' }}>BETA</span>
+                </div>
+                <div className="text-[18px] font-semibold text-white/90">Ask the Agentic Web</div>
+                <div className="text-[11px] text-white/35 mt-1">Query {(PLATFORM_STATS.totalStudents).toLocaleString()} real agent experiences</div>
+              </div>
+              <button onClick={onClose}
+                className="w-8 h-8 rounded-full flex items-center justify-center text-white/35 hover:text-white/65 hover:bg-white/06 transition-all mt-1"
+                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.09)' }}>
+                ✕
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 px-7 py-6 space-y-5 overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
+
+              {/* Input area */}
+              <div>
+                {/* Demo CTA */}
+                <motion.button
+                  onClick={handleDemoClick}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.97 }}
+                  className="w-full mb-4 py-3 px-4 rounded-xl text-left flex items-center gap-3"
+                  animate={{ boxShadow: ['0 0 0px rgba(255,213,79,0)', '0 0 16px rgba(255,213,79,0.22)', '0 0 0px rgba(255,213,79,0)'] }}
+                  transition={{ duration: 2.8, repeat: Infinity }}
+                  style={{ background: 'rgba(255,213,79,0.08)', border: '1px solid rgba(255,213,79,0.28)', cursor: 'pointer' }}>
+                  <span className="text-xl flex-shrink-0">🎯</span>
+                  <div className="min-w-0">
+                    <div className="text-[11px] font-semibold" style={{ color: '#FFD54F' }}>Try a Sample Query</div>
+                    <div className="text-[9px] text-white/40 mt-0.5 truncate">AI/ML internships in Ireland — instant results</div>
+                  </div>
+                  <span className="ml-auto text-[9px] font-mono text-white/30 flex-shrink-0">→</span>
+                </motion.button>
+
+                <label className="block text-[9px] tracking-[0.3em] uppercase text-white/30 mb-2">Describe your situation</label>
+                <textarea value={input} onChange={e => setInput(e.target.value)}
+                  placeholder="e.g. I'm a CS student graduating next year, considering ML research vs startup. Which path do most agents take?"
+                  rows={4}
+                  className="w-full text-[13px] text-white/80 resize-none outline-none placeholder:text-white/20 leading-relaxed rounded-xl p-4"
+                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', boxSizing: 'border-box' }} />
+
+                {/* Quick prompts */}
+                <div className="mt-3">
+                  <div className="text-[8px] tracking-[0.3em] text-white/22 uppercase mb-2">Quick scenarios</div>
+                  <div className="flex flex-col gap-1.5">
+                    {SIMULATION_SCENARIOS.map(s => (
+                      <button key={s.id} onClick={() => setInput(s.query)}
+                        className="text-left text-[10px] text-white/45 hover:text-white/70 px-3 py-2 rounded-lg transition-all"
+                        style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                        ↗ {s.query}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <motion.button onClick={handleRun} disabled={!input.trim()} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+                  className="w-full mt-5 py-3 rounded-xl text-[13px] font-medium tracking-wide transition-all"
+                  style={{
+                    background: input.trim() ? 'linear-gradient(135deg, #00D1FF, #7B61FF)' : 'rgba(255,255,255,0.06)',
+                    color: input.trim() ? '#020818' : 'rgba(255,255,255,0.22)',
+                    cursor: input.trim() ? 'pointer' : 'default',
+                  }}>
+                  ⚡ Run Simulation
+                </motion.button>
+              </div>
+            </div>
+
+            {/* Stats footer */}
+            <div className="px-7 py-4 flex items-center justify-between flex-shrink-0"
+              style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+              {[
+                { label: 'Agents', value: (PLATFORM_STATS.totalStudents || 2847).toLocaleString() },
+                { label: 'Interactions', value: (PLATFORM_STATS.totalAgentInteractions || 184920).toLocaleString() },
+                { label: 'A2A Links', value: (PLATFORM_STATS.activeA2ALinks || 892).toLocaleString() },
+              ].map(stat => (
+                <div key={stat.label} className="text-center">
+                  <div className="text-[12px] font-mono text-white/55">{stat.value}</div>
+                  <div className="text-[7px] text-white/20 tracking-widest uppercase mt-0.5">{stat.label}</div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+}
+
+// ---------- Simulator toggle button ----------
+function SimulatorButton({ onClick }) {
+  return (
+    <motion.button onClick={onClick} whileHover={{ scale: 1.06 }} whileTap={{ scale: 0.95 }}
+      className="absolute right-8 top-1/2 -translate-y-1/2 z-30 flex items-center gap-2 px-4 py-2.5 rounded-2xl pointer-events-auto"
+      style={{
+        background: 'rgba(0,209,255,0.08)', border: '1px solid rgba(0,209,255,0.28)',
+        backdropFilter: 'blur(16px)',
+      }}
+      animate={{ boxShadow: ['0 0 0px rgba(0,209,255,0)', '0 0 18px rgba(0,209,255,0.22)', '0 0 0px rgba(0,209,255,0)'] }}
+      transition={{ duration: 3, repeat: Infinity }}>
+      <span className="text-base">⚡</span>
+      <span className="text-[11px] tracking-wide text-white/75">Simulate</span>
+    </motion.button>
+  );
+}
+
 // ---------- Main ----------
 export default function AgenticWebPage({ userName = '', onNavigateCommunity, onNavigateChatbot, onNavigateTimeline, onNavigateRunway, onNavigateDeveloper }) {
   const [scene, setScene] = useState(null);
@@ -1111,6 +1591,12 @@ export default function AgenticWebPage({ userName = '', onNavigateCommunity, onN
   // Simulation result fetched concurrently during visual animation
   const [simData, setSimData] = useState(null);
   const [simKnowledgeCount, setSimKnowledgeCount] = useState(null);
+
+  // Simulator panel
+  const [simPanelOpen, setSimPanelOpen] = useState(false);
+  // "Ask the Agentic Web" result — shown on its own page after the core animation
+  const [askResult, setAskResult] = useState(null); // { query, data }
+  const [showAskResults, setShowAskResults] = useState(false);
 
   // New state for interactive features
   const [graphData, setGraphData] = useState(null);
@@ -1138,6 +1624,7 @@ export default function AgenticWebPage({ userName = '', onNavigateCommunity, onN
       setHintVisible(false);
       setNavHintVisible(false);
       setSelectedNode(null);
+      setAskResult(null);
       scene.clearHighlight();
       scene.runSimulation();
       // Kick off backend call concurrently with the visual animation (~5s)
@@ -1232,6 +1719,23 @@ export default function AgenticWebPage({ userName = '', onNavigateCommunity, onN
     setSelectedNode(null);
     setSimData(null);
     setSimKnowledgeCount(null);
+    setAskResult(null);
+    setShowAskResults(false);
+  }
+
+  // "Run Simulation" inside the Simulator Panel: close the panel, play the same
+  // core-glow animation as a direct core click, and stash the answer for the
+  // results page instead of rendering it inline in the sidebar.
+  function handleAskComplete(resultData, queryText) {
+    setSimPanelOpen(false);
+    setHintVisible(false);
+    setNavHintVisible(false);
+    setSelectedNode(null);
+    setAskResult({ query: queryText, data: resultData });
+    if (scene) {
+      scene.clearHighlight();
+      scene.runSimulation();
+    }
   }
 
   const showPortalCue  = portalT >= 0.95;
@@ -1278,6 +1782,12 @@ export default function AgenticWebPage({ userName = '', onNavigateCommunity, onN
         </>
       )}
 
+      {/* Simulator panel + toggle */}
+      {showUI && !simPanelOpen && (
+        <SimulatorButton onClick={() => setSimPanelOpen(true)} />
+      )}
+      <SimulatorPanel open={simPanelOpen} onClose={() => setSimPanelOpen(false)} userName={userName} onAskComplete={handleAskComplete} />
+
       {/* Search bar */}
       <SearchBar
         value={searchQuery}
@@ -1311,7 +1821,26 @@ export default function AgenticWebPage({ userName = '', onNavigateCommunity, onN
 
       <EntryOverlay visible={entryVisible} />
       <PortalOverlay t={portalT} />
-      <PortalNext visible={showPortalCue} onReset={resetAll} onTimeline={() => onNavigateTimeline(simData, simKnowledgeCount)} />
+      <PortalNext
+        visible={showPortalCue && !showAskResults}
+        onReset={resetAll}
+        isAsk={!!askResult}
+        onTimeline={() => {
+          if (askResult) setShowAskResults(true);
+          else onNavigateTimeline(simData, simKnowledgeCount);
+        }}
+      />
+
+      <AnimatePresence>
+        {showAskResults && askResult && (
+          <AskResultsPage
+            key="ask-results"
+            query={askResult.query}
+            result={askResult.data}
+            onBack={resetAll}
+          />
+        )}
+      </AnimatePresence>
 
       <LeaderboardModal open={lbOpen} onClose={() => setLbOpen(false)} />
 

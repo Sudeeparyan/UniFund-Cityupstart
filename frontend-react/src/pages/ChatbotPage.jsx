@@ -660,7 +660,7 @@ function SocialImportPanel({ onConnect, socialImporting }) {
         </motion.div>
       ))}
       <p className="text-[10px] text-center pt-2" style={{ color: 'rgba(255,255,255,0.2)' }}>
-        🔒 Simulated demo — no real OAuth connection is made
+        🔒 Local simulation — no real OAuth connection is made
       </p>
     </div>
   );
@@ -706,7 +706,7 @@ function SocialModalOverlay({ platformId, profile, onClose, onImport }) {
             Allow Import →
           </button>
         </div>
-        <p className="text-[10px] text-center mt-3" style={{ color: 'rgba(255,255,255,0.2)' }}>🔒 Demo only — no real connection</p>
+        <p className="text-[10px] text-center mt-3" style={{ color: 'rgba(255,255,255,0.2)' }}>🔒 Local simulation only — no real connection</p>
       </motion.div>
     </motion.div>
   );

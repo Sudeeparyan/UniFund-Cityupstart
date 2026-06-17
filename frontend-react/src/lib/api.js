@@ -12,12 +12,40 @@ function authHeaders() {
   };
 }
 
-async function request(method, path, body) {
+// A stale/invalid/expired token shouldn't strand the app on the offline
+// fallback — silently mint a fresh guest token and retry once.
+const AUTH_ENDPOINTS = ['/api/auth/guest', '/api/auth/login', '/api/auth/signup'];
+let refreshPromise = null;
+
+async function refreshGuestToken() {
+  if (!refreshPromise) {
+    refreshPromise = fetch(BASE + '/api/auth/guest', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    })
+      .then(res => {
+        if (!res.ok) throw new Error('Guest login failed');
+        return res.json();
+      })
+      .then(({ access_token }) => {
+        localStorage.setItem('unifund_token', access_token);
+        return access_token;
+      })
+      .finally(() => { refreshPromise = null; });
+  }
+  return refreshPromise;
+}
+
+async function request(method, path, body, _retried) {
   const res = await fetch(BASE + path, {
     method,
     headers: authHeaders(),
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
   });
+  if (res.status === 401 && !_retried && !AUTH_ENDPOINTS.includes(path)) {
+    await refreshGuestToken();
+    return request(method, path, body, true);
+  }
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: 'Request failed' }));
     throw new Error(err.detail || 'Request failed');
@@ -86,7 +114,7 @@ export const deleteChatMessage = (id) => request('DELETE', `/api/chatbot/history
 export const enhanceContent = (content) =>
   request('POST', '/api/chatbot/enhance', { content });
 
-export const uploadFile = async (file) => {
+export const uploadFile = async (file, _retried) => {
   const token = localStorage.getItem('unifund_token');
   const form = new FormData();
   form.append('file', file);
@@ -95,6 +123,10 @@ export const uploadFile = async (file) => {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
     body: form,
   });
+  if (res.status === 401 && !_retried) {
+    await refreshGuestToken();
+    return uploadFile(file, true);
+  }
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: 'Upload failed' }));
     throw new Error(err.detail || 'Upload failed');

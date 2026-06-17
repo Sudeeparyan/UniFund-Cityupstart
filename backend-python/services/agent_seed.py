@@ -55,6 +55,15 @@ NOTABLE_BIOS = [
     'Jovian presence. High gravity, pulls insights into orbit.',
 ]
 
+REAL_PEOPLE = [
+    {'name':'SUDEEP', 'full_name':'Sudeep Aryan · Founder',  'type':3, 'icon':'★',  'bio':'Building UniFund — the first AI that reasons about your future using your past.', 'score':14280},
+    {'name':'RAMYA',  'full_name':'Ramya · AI Explorer',     'type':2, 'icon':'🔮', 'bio':'AI enthusiast navigating the intersection of technology and human potential.', 'score':12500},
+    {'name':'SAJU',   'full_name':'Saju · Builder',          'type':2, 'icon':'🌌', 'bio':'Builder at heart. Turns complex ideas into working systems.', 'score':11800},
+    {'name':'VINAY',  'full_name':'Vinay · Student',         'type':2, 'icon':'⚡', 'bio':'Engineering student exploring AI and life simulations. Early adopter.', 'score':11200},
+    {'name':'MASTH',  'full_name':'Masthan · Student',       'type':2, 'icon':'🌀', 'bio':'CS undergrad figuring out the right career path. Curious mind.', 'score':10600},
+    {'name':'GEETH',  'full_name':'Geethika · Rising Star',  'type':2, 'icon':'💫', 'bio':'Rising star in the agentic web. Connecting knowledge, skills, and ambition.', 'score':10100},
+]
+
 NOTABLE = [
     {'name':'ARIA',  'full_name':'ARIA · Career Switch',   'type':2, 'icon':'🧠', 'bio':NOTABLE_BIOS[0],  'score':9842},
     {'name':'NOX',   'full_name':'NOX · Founder',           'type':2, 'icon':'⚡', 'bio':NOTABLE_BIOS[1],  'score':9120},
@@ -116,6 +125,10 @@ def make_name(idx: int) -> str:
 
 def _build_agents() -> list:
     agents = []
+    # Real people first (high scores, searchable by real name)
+    for i, n in enumerate(REAL_PEOPLE):
+        agents.append({'idx': 1500 + i, **n})
+    # Named AI agents
     for i, n in enumerate(NOTABLE):
         agents.append({'idx': i, **n})
 

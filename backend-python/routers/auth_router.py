@@ -34,21 +34,25 @@ async def signup(payload: SignupRequest, db=Depends(get_db)):
 @router.post("/guest", response_model=TokenResponse)
 async def guest_login(db=Depends(get_db)):
     guest_email = "guest@unifund.app"
-    cursor = await db.execute("SELECT id, name FROM users WHERE email = ?", (guest_email,))
+    guest_id = "guest-00000000-0000-0000-0000-000000000000"
+    created_at = datetime.now(timezone.utc).isoformat()
+    pw_hash = hash_password("__guest__")
+
+    # INSERT OR IGNORE + re-select by id makes this safe against concurrent
+    # calls (e.g. React StrictMode double-invoking the mount effect) racing
+    # to create the same hardcoded guest row. Lookup is by id, not email,
+    # since the id is the only part guaranteed stable across renames.
+    await db.execute(
+        "INSERT OR IGNORE INTO users (id, email, password_hash, name, created_at) VALUES (?, ?, ?, ?, ?)",
+        (guest_id, guest_email, pw_hash, "Explorer", created_at),
+    )
+    await db.commit()
+
+    cursor = await db.execute("SELECT id, name FROM users WHERE id = ?", (guest_id,))
     user = await cursor.fetchone()
-    if not user:
-        user_id = "guest-00000000-0000-0000-0000-000000000000"
-        created_at = datetime.now(timezone.utc).isoformat()
-        pw_hash = hash_password("__guest__")
-        await db.execute(
-            "INSERT INTO users (id, email, password_hash, name, created_at) VALUES (?, ?, ?, ?, ?)",
-            (user_id, guest_email, pw_hash, "Explorer", created_at),
-        )
-        await db.commit()
-        name = "Explorer"
-    else:
-        user_id = user["id"]
-        name = user["name"]
+    user_id = user["id"]
+    name = user["name"]
+
     token = create_access_token(user_id, name)
     return TokenResponse(access_token=token, user_id=user_id, name=name)
 
