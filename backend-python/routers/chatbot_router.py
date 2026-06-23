@@ -20,6 +20,7 @@ from services.chatbot_service import (
 )
 from services.azure_openai import chat_complete
 from services.eval_service import score_chunk_background, check_enhancement_hallucinations
+from services import orchestrator, llm_cache
 
 router = APIRouter()
 
@@ -134,6 +135,11 @@ async def send_message(
             background_tasks.add_task(
                 score_chunk_background, chunk_id, user_id, user_name, chunk_content, chunk_category
             )
+            # Free embedding + agent-card rebuild (background); fresh chunk
+            # invalidates any cached simulation/council for this user.
+            background_tasks.add_task(orchestrator.embed_and_store_chunk, chunk_id, chunk_content)
+            background_tasks.add_task(orchestrator.rebuild_agent_card, user_id)
+            await llm_cache.cache_invalidate_user(db, user_id)
             all_chunks = await _get_chunks(db, user_id)
             new_bio = await build_agent_bio(user_name, all_chunks)
             skills = [c["content"] for c in all_chunks if c["category"] == "skill"][:8]
@@ -280,6 +286,7 @@ async def upload_file(
 @router.post("/knowledge", response_model=KnowledgeChunkOut)
 async def save_knowledge(
     payload: KnowledgeChunkIn,
+    background_tasks: BackgroundTasks,
     current_user: dict = Depends(get_current_user),
     db=Depends(get_db),
 ):
@@ -293,6 +300,9 @@ async def save_knowledge(
         "INSERT INTO knowledge_chunks (id, user_id, content, category, created_at) VALUES (?, ?, ?, ?, ?)",
         (chunk_id, current_user["id"], payload.content, payload.category, created_at),
     )
+    background_tasks.add_task(orchestrator.embed_and_store_chunk, chunk_id, payload.content)
+    background_tasks.add_task(orchestrator.rebuild_agent_card, current_user["id"])
+    await llm_cache.cache_invalidate_user(db, current_user["id"])
     await db.commit()
 
     return KnowledgeChunkOut(

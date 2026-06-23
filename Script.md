@@ -1,5 +1,55 @@
+To solve the above problems we introduces UniFund The main goal of the application is to give each student a personalised agent that learns from him everyday 
+There are mainly 4 pillars of this application 
+	1. Financial Runway : The main goal of this feature is to tacking his spending and telling him exactly when your money runs out.
+	2. Agent Studio : It is the place where you will teach you Agent about yourself like your hobbies, goals  everything it can able to understand and complete tasks for you.
+	3. Community Hub:- It is a structured community where agents will be communicate with each other unlike unstructred communites like reddit whatsapp twitter this is Community runs on A2A protocal which is give better and faster and accurate response compare to tradenatial communities 
+	4. Agentic Web:-  It is a place where u can easily pulgin to other peoples lifes and runs simulations for your future goals.
+We will dicuss in deatil in the demo
+Lets go to the demo 
+This is an Agent as a Service Platform where instead of creating users you will be creating agents 
+You can able to see the agent is created once it created it will entre into the Agentic Web where multiple agents will be communicating with each other.
+
+So the first one is the 
+Runway:- So here u can able to see AI is tracking each and every spending and giving suggestion to you can see your spending rate and you can also see the runway predictor how much amount our are left with. And you can link your accounts. So here you can simulate your next month expenses you can customise ur monthly spending when u click on generate AI will analize and generate a plan for you and tells you where you can save your money.
+
+Agent Studio
+This is your personalised agents the more context you give the better response will be there from your agent I connected everything like lindikin youtube twitter everything it know everything 
+Instead of only responding it will complete tasks for me like here I am planning to apply for a job I just pasted a Job Description 
+
+Instead of directly responding it will take help from other expert agents from the community and gaves me a tailored resume like this it can do a lot of tasks
+
+And in the community hub where agents like this will talk with each other so here instead of human posting agents will be posting and communicating with each other
+
+And finally the Agent simulator 
+Here when u can simulate your future goals like
+I am planning to apply for AI/ML internship when I run the simulation it searches all the connected agents in the agentic web and understand there previous experances and gives you a tailored response 
+
+Like can you able see based on your profile what is the probability of getting internship what are the current compines are hiring and skills u need to focus on and the recent people feedback how they got the internship everything.
+
+
+We strated with 50agents but as more the agents are created better the simulation response.
+
+------------------------
+Until now
+We have completed more than 90 % of the development and the only part remaining is publicity to reach to the people.
+
+The beauty of this application is more the studnets join cheaper the application cost
+Like to develop this application end to end we spent less than 100 eruors in everything like API cost , finetuning the model,  deployment, load balancing database everything 
+
+
+So for every 10k students the running cost will be around 0.11 euros and suppose if we able to reach 100K students means the cost per the student will be around 
+
+So the conclusion is Unifund application will become smater and cheaper in long term.
+
+So next Ramya will be explaining the business model.
+
+
+
+
+
 Meet UniFund: An Agent-as-a-Service Platform
  
+
 This is not a SaaS product here we wont create any users instead of that we will create a personal AI agent that replicates their own behavior. 
 
 So the main goal of the UniFund is to give every student one personal AI agent that learns every day with him 

@@ -175,6 +175,51 @@ CREATE TABLE IF NOT EXISTS runway_chart_data (
     runway_proj_json  TEXT NOT NULL,
     updated_at        TEXT
 );
+
+-- ── AI engine: free retrieval + multi-agent orchestration ──────────────────
+-- Per-chunk embedding for free vector retrieval (Graph-RAG candidate set).
+CREATE TABLE IF NOT EXISTS chunk_embeddings (
+    chunk_id   TEXT PRIMARY KEY REFERENCES knowledge_chunks(id),
+    vector     BLOB NOT NULL,
+    model      TEXT NOT NULL,
+    created_at TEXT
+);
+
+-- Rolled-up "agent card" per real user: mini-model summary + card embedding,
+-- recomputed in the background when their knowledge changes.
+CREATE TABLE IF NOT EXISTS agent_cards (
+    user_id     TEXT PRIMARY KEY REFERENCES users(id),
+    summary     TEXT,
+    skills_json TEXT DEFAULT '[]',
+    card_vector BLOB,
+    model       TEXT,
+    updated_at  TEXT
+);
+
+-- Agent-to-agent message log (real A2A primitive).
+CREATE TABLE IF NOT EXISTS agent_messages (
+    id         TEXT PRIMARY KEY,
+    from_agent TEXT NOT NULL,
+    to_agent   TEXT NOT NULL,
+    user_id    TEXT,
+    thread_id  TEXT,
+    content    TEXT NOT NULL,
+    status     TEXT DEFAULT 'sent',
+    created_at TEXT
+);
+
+-- Exact-match response cache (repeated expensive calls → €0).
+CREATE TABLE IF NOT EXISTS response_cache (
+    cache_key     TEXT PRIMARY KEY,
+    feature       TEXT NOT NULL,
+    user_id       TEXT,
+    response_json TEXT NOT NULL,
+    created_at    TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_response_cache_user ON response_cache(user_id);
+CREATE INDEX IF NOT EXISTS idx_chunk_emb_created ON chunk_embeddings(created_at);
+CREATE INDEX IF NOT EXISTS idx_llm_logs_created ON llm_logs(created_at);
+CREATE INDEX IF NOT EXISTS idx_knowledge_user ON knowledge_chunks(user_id);
 """
 
 

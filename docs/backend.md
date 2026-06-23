@@ -1,6 +1,8 @@
-# UniMind Python Backend — Documentation
+# UniMind / UniFund Python Backend — Documentation
 
-> Complete reference for the backend codebase. Covers every file, schema, route, service, and data flow pattern so any developer or AI agent can fully understand the backend structure without needing to read all source files first.
+> Complete reference for the backend codebase. Covers every file, table, route, service, and data-flow pattern so a developer or AI agent can understand the backend without reading all the source first.
+>
+> **Naming:** mid-rebrand UniMind → UniFund. The DB default file is `unimind.db` (see Config). The frontend stores its user token under `unifund_token` and dev token under `unifund_dev_token`.
 
 ---
 
@@ -14,68 +16,60 @@
 6. [Database Layer (`db.py`)](#6-database-layer-dbpy)
 7. [Authentication (`auth.py`)](#7-authentication-authpy)
 8. [Data Models (`models/`)](#8-data-models-models)
-9. [Router: Auth (`routers/auth_router.py`)](#9-router-auth-routersauth_routerpy)
-10. [Router: Users (`routers/users_router.py`)](#10-router-users-routersusers_routerpy)
-11. [Router: Agents (`routers/agents_router.py`)](#11-router-agents-routersagents_routerpy)
-12. [Router: Posts (`routers/posts_router.py`)](#12-router-posts-routersposts_routerpy)
-13. [Router: Chatbot (`routers/chatbot_router.py`)](#13-router-chatbot-routerschatbot_routerpy)
-14. [Router: Simulate (`routers/simulate_router.py`)](#14-router-simulate-routerssimulate_routerpy)
-15. [Router: Network (`routers/network_router.py`)](#15-router-network-routersnetwork_routerpy)
-16. [Router: Achievements (`routers/achievements_router.py`)](#16-router-achievements-routersachievements_routerpy)
-17. [Service: Agent Seed (`services/agent_seed.py`)](#17-service-agent-seed-servicesagent_seedpy)
-18. [Service: Azure OpenAI (`services/azure_openai.py`)](#18-service-azure-openai-servicesazure_openaipy)
-19. [Service: Chatbot (`services/chatbot_service.py`)](#19-service-chatbot-serviceschatbot_servicepy)
-20. [Seed Data (`seed_data/`)](#20-seed-data-seed_data)
-21. [Data Flow Diagrams](#21-data-flow-diagrams)
-22. [Security Model](#22-security-model)
-23. [Key Architecture Patterns](#23-key-architecture-patterns)
-24. [Frontend Integration Reference](#24-frontend-integration-reference)
+9. [Router: Auth](#9-router-auth)
+10. [Router: Users](#10-router-users)
+11. [Router: Agents](#11-router-agents)
+12. [Router: Posts](#12-router-posts)
+13. [Router: Chatbot](#13-router-chatbot)
+14. [Router: Simulate](#14-router-simulate)
+15. [Router: Network](#15-router-network)
+16. [Router: Achievements](#16-router-achievements)
+17. [Router: Runway](#17-router-runway)
+18. [Router: Agent Studio](#18-router-agent-studio)
+19. [Router: Developer](#19-router-developer)
+20. [Service: Agent Seed](#20-service-agent-seed)
+21. [Service: Azure OpenAI](#21-service-azure-openai)
+22. [Service: Chatbot](#22-service-chatbot)
+23. [Service: Eval (3 pipelines)](#23-service-eval-3-pipelines)
+24. [Seed Data](#24-seed-data)
+25. [Security Model](#25-security-model)
+26. [Key Architecture Patterns](#26-key-architecture-patterns)
+27. [Frontend Integration Reference](#27-frontend-integration-reference)
 
 ---
 
 ## 1. Project Overview
 
-The UniMind backend is a **FastAPI + SQLite async API** that powers the full UniMind agentic web platform. It handles user authentication, a multi-turn LLM chatbot that extracts structured knowledge from conversations, procedural generation of 1,401 AI agents, community posts with reactions, life simulations via Azure OpenAI, and a leaderboard/achievements system.
+A **FastAPI + SQLite (async) + Azure OpenAI** backend powering the UniMind/UniFund platform: guest/user auth, an LLM chatbot that extracts structured knowledge, 1,401 procedurally-generated agents, community posts, life simulations, a personal-finance "Runway" tracker, an agent-studio résumé pipeline, three LLM quality-evaluation pipelines, and a developer control plane.
 
-**Core responsibilities:**
-
-```
-Auth (JWT)  →  Chatbot (knowledge extraction)  →  Simulation (LLM life path)
-    ↓                    ↓                              ↓
- SQLite DB         Agent Profile Build           4-Phase AI Result
-    ↓
- Posts / Reactions / Leaderboard / Achievements
-```
-
-**Base URL (local dev):** `http://localhost:8000`  
-**API prefix:** All routes start with `/api`  
-**Swagger docs:** `http://localhost:8000/docs`
+Base URL (dev): `http://localhost:8000` · API prefix: `/api` · Swagger: `/docs`.
 
 ---
 
 ## 2. Tech Stack & Dependencies
 
-| Package | Version | Role |
+From `requirements.txt`:
+
+| Package | Pin | Role |
 |---|---|---|
-| `fastapi` | 0.111.0 | Web framework + route declarations |
+| `fastapi` | 0.111.0 | Web framework |
 | `uvicorn[standard]` | 0.29.0 | ASGI server |
-| `pydantic` | 2.7.0 | Data validation and serialization |
-| `aiosqlite` | 0.20.0 | Async SQLite database driver |
-| `python-jose[cryptography]` | 3.3.0 | JWT token creation and verification |
-| `passlib[bcrypt]` | 1.7.4 | Password hashing (bcrypt) |
+| `python-jose[cryptography]` | 3.3.0 | JWT |
+| `passlib[bcrypt]` | 1.7.4 | Password hashing |
 | `bcrypt` | 4.0.1 | Bcrypt backend (pinned for passlib compat) |
-| `openai` | 1.30.0 | Azure OpenAI SDK (`AsyncAzureOpenAI`) |
-| `python-dotenv` | 1.0.0 | `.env` file loading |
-| `httpx` | 0.27.0 | Async HTTP client |
-| `python-multipart` | 0.0.9 | Form data parsing |
+| `aiosqlite` | 0.20.0 | Async SQLite driver |
+| `python-dotenv` | 1.0.0 | `.env` loading |
+| `openai` | ≥2.38.0 | Azure OpenAI SDK (`AsyncAzureOpenAI`) |
+| `pydantic` | ≥2.13.4 | Validation |
+| `python-multipart` | 0.0.9 | Multipart/form parsing (uploads) |
+| `httpx` | ≥0.28.1 | Async HTTP |
+| `pypdf` | 4.3.1 | PDF text extraction |
+| `python-docx` | 1.1.2 | DOCX text extraction |
+| `pillow` | ≥12.2.0 | Image handling |
 
-**Run commands:**
 ```bash
-# First time only
 pip install -r requirements.txt
-python seed_data/run_seed.py
-
-# Every time
+python seed_data/run_seed.py            # first time
 python -m uvicorn main:app --reload --port 8000
 ```
 
@@ -85,103 +79,83 @@ python -m uvicorn main:app --reload --port 8000
 
 ```
 backend-python/
-├── main.py                          # FastAPI app factory, CORS, router mounts
-├── db.py                            # SQLite schema + get_db() async dependency
-├── auth.py                          # JWT creation/verification + get_current_user()
-├── requirements.txt                 # Pinned dependencies
-├── .env                             # Secrets (never committed)
-├── .env.example                     # Template for .env
-├── unimind.db                       # SQLite database file (auto-created)
+├── main.py                 # app factory, CORS regex, 11 router mounts, /api/health
+├── db.py                   # 17-table schema, migrations, get_db(), DEFAULT_FLAGS
+├── auth.py                 # user JWT, dev JWT, bcrypt, get_current_user / get_dev_user
+├── requirements.txt
+├── .env / .env.example     # secrets (never commit .env)
+├── unimind.db              # SQLite file (default; .env.example points at unifund.db)
 │
-├── models/                          # Pydantic request/response schemas
-│   ├── __init__.py
-│   ├── user.py                      # SignupRequest, LoginRequest, UserProfile, OnboardingPayload
-│   ├── agent.py                     # AgentOut
-│   ├── chat.py                      # ChatMessageIn/Out, KnowledgeChunkIn/Out, ChatResponse
-│   └── post.py                      # PostOut, CreatePostRequest, ReactRequest
+├── models/
+│   ├── user.py             # SignupRequest, LoginRequest, TokenResponse, OnboardingPayload, UserProfile
+│   ├── chat.py             # ChatMessageIn/Out, KnowledgeChunkIn/Out, ProfileUpdate, ChatResponse,
+│   │                         EnhanceRequest/Response, UploadResponse
+│   ├── post.py             # PostOut, CreatePostRequest, ReactRequest, TrendingTagOut
+│   ├── agent.py            # AgentOut
+│   ├── dev.py              # all developer-plane request/response models (~25 classes)
+│   └── runway.py           # runway request/response models
 │
-├── routers/                         # One file per resource group
-│   ├── __init__.py
-│   ├── auth_router.py               # POST /api/auth/signup, /api/auth/login
-│   ├── users_router.py              # GET /api/users/me, POST /api/users/me/onboarding
-│   ├── agents_router.py             # GET /api/agents, GET /api/agents/search
-│   ├── posts_router.py              # GET/POST /api/posts, POST /api/posts/{id}/react
-│   ├── chatbot_router.py            # POST /api/chatbot/message, GET history, POST knowledge
-│   ├── simulate_router.py           # POST /api/simulate
-│   ├── network_router.py            # GET /api/network/growth, GET /api/leaderboard
-│   └── achievements_router.py       # GET /api/achievements/{user_id}
+├── routers/
+│   ├── auth_router.py      # /api/auth: signup, login, guest
+│   ├── users_router.py     # /api/users: me, me/onboarding
+│   ├── agents_router.py    # /api: agents, agents/search
+│   ├── posts_router.py     # /api: posts, posts/trending, posts/{id}/react
+│   ├── chatbot_router.py   # /api/chatbot: message, history, chunks, enhance, upload, knowledge
+│   ├── simulate_router.py  # /api: simulate
+│   ├── network_router.py   # /api: network/growth, leaderboard
+│   ├── achievements_router.py # /api: achievements/{user_id}
+│   ├── runway_router.py    # /api/runway: profile, income, categories, transactions, accounts, charts, simulate, tip
+│   ├── agent_studio_router.py # /api: studio/run
+│   └── dev_router.py       # /api/dev: ~30 telemetry + eval endpoints
 │
-├── services/                        # Business logic, external API clients
-│   ├── __init__.py
-│   ├── agent_seed.py                # xorshift32 RNG + 1,401 agent definitions
-│   ├── azure_openai.py              # AsyncAzureOpenAI singleton, chat_complete(), simulate_life()
-│   └── chatbot_service.py           # System prompt builder, knowledge extractor, bio builder
+├── services/
+│   ├── agent_seed.py       # xorshift32 RNG + 1,401 agents (in-memory AGENTS list)
+│   ├── azure_openai.py     # AsyncAzureOpenAI client, chat_complete(), simulate_life()
+│   ├── chatbot_service.py  # prompts, extract_knowledge, build_agent_bio, enhance_content, extract_text_from_file
+│   └── eval_service.py     # Pipeline 1/2/3 scorers + background writers
 │
-└── seed_data/                       # One-time DB initialization
-    ├── __init__.py
-    ├── posts_seed.py                # 10 seed community posts matching frontend INITIAL_POSTS
-    └── run_seed.py                  # Script: create tables + insert seed posts
+└── seed_data/
+    ├── posts_seed.py       # 10 seed community posts
+    ├── runway_seed.py      # "Ramya" demo user + full runway dataset
+    └── run_seed.py         # create tables + seed posts + seed Ramya
 ```
 
 ---
 
 ## 4. Configuration & Environment
 
-**File:** `backend-python/.env` (never committed — use `.env.example` as template)
+`backend-python/.env` (never committed). Template in `.env.example`:
 
 ```env
-# Azure OpenAI
 OPENAI_API_KEY=your_azure_openai_key_here
-AZURE_ENDPOINT=https://laya.cognitiveservices.azure.com/
+AZURE_ENDPOINT=https://your-resource.cognitiveservices.azure.com/
 AZURE_API_VERSION=2024-12-01-preview
 DEPLOYMENT_NAME=gpt-5-chat
-
-# Auth
 JWT_SECRET=change_this_to_a_random_64_char_string
-
-# Database (optional — defaults to ./unimind.db)
-DB_PATH=./unimind.db
+DB_PATH=./unifund.db
 ```
 
-| Variable | Required | Default | Notes |
+| Variable | Required | Default (code) | Notes |
 |---|---|---|---|
-| `OPENAI_API_KEY` | Yes | — | Azure key (not OpenAI.com key) |
-| `AZURE_ENDPOINT` | Yes | — | Azure resource URL |
-| `AZURE_API_VERSION` | No | `2024-12-01-preview` | API version string |
-| `DEPLOYMENT_NAME` | No | `gpt-5-chat` | Azure deployment name |
-| `JWT_SECRET` | Yes | — | Signing secret for JWT tokens |
-| `DB_PATH` | No | `./unimind.db` | SQLite file path |
+| `OPENAI_API_KEY` | Yes | — | Azure key (not openai.com) |
+| `AZURE_ENDPOINT` | Yes | `""` | Azure resource URL |
+| `AZURE_API_VERSION` | No | `2024-12-01-preview` | |
+| `DEPLOYMENT_NAME` | No | `gpt-5-chat` | Azure deployment |
+| `JWT_SECRET` | Yes | `fallback_secret_change_me` | signs both user + dev tokens |
+| `DB_PATH` | No | `./unimind.db` | `.env.example` overrides to `./unifund.db` |
+| `DEV_EMAIL_1` / `DEV_EMAIL_2` / `DEV_PASS` | No | `admin@unimind.dev` / `team@unimind.dev` / `unimind-dev-2025` | developer-plane credentials |
+
+> If you use `.env.example` verbatim the DB file is `unifund.db`; the code default (no `DB_PATH`) is `unimind.db`. Keep `run_seed.py` and the server pointed at the same file.
 
 ---
 
 ## 5. Application Entry Point (`main.py`)
 
-**Location:** [backend-python/main.py](../backend-python/main.py)
+App factory with a lifespan that calls `create_tables()` on startup.
 
-The FastAPI application factory. Configures CORS, mounts all routers, runs startup tasks, and exposes a health check.
+**CORS:** `allow_origin_regex=r"http://(localhost|127\.0\.0\.1):\d+"`, `allow_credentials=True`, all methods/headers — any localhost/127.0.0.1 port is permitted.
 
-### Lifespan (Startup)
-
-```python
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    await create_tables()   # Creates all 6 SQLite tables if not present
-    yield
-```
-
-### CORS Middleware
-
-```python
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # Vite dev server
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-```
-
-### Router Mounts
+**Router mounts (11):**
 
 | Prefix | Tag | Router |
 |---|---|---|
@@ -193,801 +167,172 @@ app.add_middleware(
 | `/api` | network | `network_router` |
 | `/api` | achievements | `achievements_router` |
 | `/api/chatbot` | chatbot | `chatbot_router` |
+| `/api/dev` | developer | `dev_router` |
+| `/api/runway` | runway | `runway_router` |
+| `/api` | studio | `agent_studio_router` |
 
-### Health Check
-
-```
-GET /api/health → { "status": "ok" }
-```
+**Health:** `GET /api/health → { "status": "ok", "service": "UniMind API" }`
 
 ---
 
 ## 6. Database Layer (`db.py`)
-
-**Location:** [backend-python/db.py](../backend-python/db.py)
-
-Manages the async SQLite connection and defines the full schema.
-
-### Connection
 
 ```python
 DB_PATH = os.getenv("DB_PATH", "./unimind.db")
 
 async def get_db():
     async with aiosqlite.connect(DB_PATH) as db:
-        db.row_factory = aiosqlite.Row   # Rows accessible by column name
+        db.row_factory = aiosqlite.Row
         yield db
 ```
 
-> **Critical rule:** `get_db()` already opens and closes the connection via `async with`. Never wrap `db` in another `async with db:` inside route handlers — it will cause a double-context error.
+> **Critical rule:** `get_db()` already opens/closes via `async with`. Never re-wrap `db` in `async with db:` inside a handler.
 
-### Schema — 6 Tables
+`create_tables()` runs `CREATE_TABLES_SQL` (17 `CREATE TABLE IF NOT EXISTS`), then a list of idempotent `ALTER TABLE … ADD COLUMN` migrations (each wrapped in try/except), then seeds `DEFAULT_FLAGS = ["simulations", "community", "chatbot", "enhance"]` into `feature_flags`.
 
-#### `users`
+### Tables
 
-| Column | Type | Constraints | Notes |
-|---|---|---|---|
-| `id` | TEXT | PRIMARY KEY | UUID |
-| `email` | TEXT | UNIQUE NOT NULL | Lowercased on insert |
-| `password_hash` | TEXT | NOT NULL | Bcrypt hash |
-| `name` | TEXT | NOT NULL | Display name |
-| `created_at` | TEXT | NOT NULL | ISO 8601 UTC |
-| `focus` | TEXT | — | Onboarding answer (text value) |
-| `goal` | TEXT | — | Onboarding answer (text value) |
-| `fear` | TEXT | — | Onboarding answer (text value) |
-| `agent_bio` | TEXT | DEFAULT '' | LLM-generated bio, updated after each chat turn |
-| `agent_skills` | TEXT | DEFAULT '[]' | JSON-encoded string array (up to 8 skills) |
-| `agent_score` | INTEGER | DEFAULT 100 | Accumulates as user engages |
-| `onboarding_complete` | INTEGER | DEFAULT 0 | Boolean (0/1) |
+**Core**
 
-#### `knowledge_chunks`
+`users` — `id` PK, `email` UNIQUE, `password_hash`, `name`, `created_at`, `focus`, `goal`, `fear`, `agent_bio` (default `''`), `agent_skills` (JSON string, default `'[]'`), `agent_score` (default 100), `onboarding_complete` (0/1). Migrated columns: `suspended` (default 0), `last_active`.
 
-| Column | Type | Constraints | Notes |
-|---|---|---|---|
-| `id` | TEXT | PRIMARY KEY | UUID |
-| `user_id` | TEXT | FK → users.id | Cascade delete |
-| `content` | TEXT | NOT NULL | A single extracted knowledge statement |
-| `category` | TEXT | NOT NULL | One of: `skill`, `experience`, `goal`, `fear`, `general` |
-| `created_at` | TEXT | NOT NULL | ISO 8601 UTC |
+`knowledge_chunks` — `id` PK, `user_id`, `content`, `category`, `created_at`. Migrated eval columns: `eval_score`, `eval_reason`, `eval_flags` (JSON, default `'[]'`), `eval_status` (default `'pending'`), `eval_raw_response`, `eval_user_message`, `eval_tokens_in`, `eval_tokens_out`, `eval_duration_ms`.
 
-#### `chat_messages`
+`chat_messages` — `id` PK, `user_id`, `role` (`user`/`assistant`), `content`, `created_at`.
 
-| Column | Type | Constraints | Notes |
-|---|---|---|---|
-| `id` | TEXT | PRIMARY KEY | UUID |
-| `user_id` | TEXT | FK → users.id | — |
-| `role` | TEXT | NOT NULL | `"user"` or `"assistant"` |
-| `content` | TEXT | NOT NULL | Message body |
-| `created_at` | TEXT | NOT NULL | ISO 8601 UTC |
+`posts` — `id` PK, `agent_name`, `agent_icon`, `agent_type` (0=New,1=Community,2=Expert,3=You), `agent_score`, `content`, `tag`, `user_id` (nullable; NULL for seed/broadcast), `created_at`.
 
-#### `posts`
+`reactions` — PK `(post_id, emoji)`, `count` (incremented via `ON CONFLICT DO UPDATE`).
 
-| Column | Type | Constraints | Notes |
-|---|---|---|---|
-| `id` | TEXT | PRIMARY KEY | UUID or seed ID |
-| `agent_name` | TEXT | NOT NULL | Uppercase agent name |
-| `agent_icon` | TEXT | NOT NULL | Emoji or symbol |
-| `agent_type` | INTEGER | NOT NULL | 0=New, 1=Community, 2=Expert, 3=You |
-| `agent_score` | INTEGER | NOT NULL | Agent's score |
-| `content` | TEXT | NOT NULL | Post body |
-| `tag` | TEXT | NOT NULL | Category label |
-| `user_id` | TEXT | FK → users.id (nullable) | NULL for seeded posts |
-| `created_at` | TEXT | NOT NULL | ISO 8601 UTC |
+`achievements` — `id` PK, `user_id`, `badge_key`, `earned_at`.
 
-#### `reactions`
+**Telemetry / control**
 
-| Column | Type | Constraints | Notes |
-|---|---|---|---|
-| `post_id` | TEXT | FK → posts.id | Composite PK |
-| `emoji` | TEXT | NOT NULL | Composite PK |
-| `count` | INTEGER | DEFAULT 0 | Incremented atomically via `ON CONFLICT DO UPDATE` |
+`llm_logs` — `id`, `user_id`, `user_name`, `call_type` (`chatbot`/`simulation`/`studio_resume`/`chunk_eval`/`sim_eval`/…), `tokens_in`, `tokens_out`, `duration_ms`, `status` (`llm`/`fallback`), `created_at`.
 
-**Primary Key:** `(post_id, emoji)`
+`simulation_logs` — `id`, `user_id`, `user_name`, `chunks_used`, `duration_ms`, `output_type` (`llm`/`fallback`), `created_at`.
 
-#### `achievements`
+`feature_flags` — `key` PK, `enabled` (0/1), `updated_at`.
 
-| Column | Type | Constraints | Notes |
-|---|---|---|---|
-| `id` | TEXT | PRIMARY KEY | UUID |
-| `user_id` | TEXT | FK → users.id | — |
-| `badge_key` | TEXT | NOT NULL | e.g., `"first_node"`, `"seer"` |
-| `earned_at` | TEXT | NOT NULL | ISO 8601 UTC |
+`broadcast_messages` — `id` autoincrement, `content`, `created_at`.
+
+**Eval**
+
+`simulation_evals` — `id`, `simulation_log_id`, `user_id`, `user_name`, `personalisation`, `groundedness`, `hallucinations` (JSON), `overall`, plus migrated `raw_response`, `chunks_context`, `simulation_output`, `user_prompt`, `tokens_in`, `tokens_out`, `duration_ms`, `created_at`.
+
+`enhance_logs` — `id`, `user_id`, `original`, `flagged` (0/1), `hallucinations` (JSON), plus migrated `enhanced_text`, `raw_guard_response`, `user_prompt`, `tokens_in`, `tokens_out`, `created_at`.
+
+**Runway**
+
+`runway_profile` — `user_id` PK, `savings_balance`, `updated_at`.
+`runway_income_sources` — `id`, `user_id`, `type`, `label`, `color`, `amount`, `active`, `created_at`.
+`runway_categories` — `id`, `user_id`, `label`, `spent`, `budget`, `color`.
+`runway_transactions` — `id`, `user_id`, `date_label`, `merchant`, `category`, `color`, `amount`, `ai_tip`, `created_at`.
+`runway_bank_accounts` — `id`, `user_id`, `bank`, `type`, `last4`, `balance`, `accent`, `synced_mins`, `created_at`.
+`runway_chart_data` — `user_id` PK, `daily_spend_json`, `runway_proj_json`, `updated_at`.
+
+> No indexes are defined on any table and `llm_logs`/`simulation_logs`/`enhance_logs` have no retention policy — they grow unbounded. `suspended` is stored but no route currently rejects suspended users.
 
 ---
 
 ## 7. Authentication (`auth.py`)
 
-**Location:** [backend-python/auth.py](../backend-python/auth.py)
-
-Handles JWT tokens and password hashing. All protected routes use `Depends(get_current_user)`.
-
-### Configuration
-
 ```python
-SECRET_KEY = os.getenv("JWT_SECRET", "dev-secret-change-me")
-ALGORITHM  = "HS256"
+SECRET_KEY = os.getenv("JWT_SECRET", "fallback_secret_change_me")
+ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_DAYS = 7
 ```
 
-### Functions
+**User tokens** — `create_access_token(user_id, name)` → `{sub, name, exp(+7d)}`. `get_current_user` decodes the Bearer token, loads the user row, returns it as a dict (`401` if missing/expired/unknown).
 
-#### `hash_password(password: str) -> str`
-Bcrypt-hashes a plain-text password via passlib. Always salted.
+**Dev tokens** — `create_dev_token(email)` → `{sub, role:"developer", exp(+12h)}`. `validate_dev_credentials(email, password)` checks `DEV_CREDENTIALS`. `get_dev_user` decodes the Bearer token and requires `role == "developer"` (`403` otherwise, `401` if invalid).
 
-#### `verify_password(plain: str, hashed: str) -> bool`
-Compares a plain-text password against a stored bcrypt hash.
-
-#### `create_access_token(user_id: str, name: str) -> str`
-Creates a JWT with payload `{sub: user_id, name: name, exp: now + 7 days}`. Signs with HS256.
-
-#### `async get_current_user(token, db) -> dict`
-FastAPI dependency. Extracts and validates the Bearer token from the `Authorization` header. Fetches the user row from SQLite and returns it as a dict. Raises `HTTP 401` if token is missing, malformed, expired, or the user no longer exists.
-
-**Usage in route:**
-```python
-@router.get("/me")
-async def get_me(current_user: dict = Depends(get_current_user), db = Depends(get_db)):
-    ...
-```
+Passwords: `passlib` bcrypt (`bcrypt==4.0.1` pinned).
 
 ---
 
 ## 8. Data Models (`models/`)
 
-All models are Pydantic v2 classes. Used for request body validation and response serialization.
+`models/user.py` — `UserProfile` now includes `posts_count: int = 0` and `chunks_saved: int = 0` (both computed in the route).
 
-### `models/user.py`
+`models/chat.py` — `ChatMessageOut.id` is optional. `EnhanceResponse` is `{enhanced, flagged=False, hallucinations=[]}`. `UploadResponse` is `{extracted_text, file_type, file_name}`.
 
-```python
-class SignupRequest(BaseModel):
-    email: str
-    password: str
-    name: str
+`models/post.py` — `PostOut`, `CreatePostRequest`, `ReactRequest`, `TrendingTagOut`.
 
-class LoginRequest(BaseModel):
-    email: str
-    password: str
+`models/agent.py` — `AgentOut(idx, name, full_name, type, icon, bio, score)`.
 
-class TokenResponse(BaseModel):
-    access_token: str
-    token_type: str = "bearer"
-    user_id: str
-    name: str
+`models/runway.py` — income/category/transaction/account I/O models, `SimPlanRequest`/`SimPlanOut` (with `SplitOut`, `RecommendationOut`), `TipRequest`/`TipOut`, `ChartsOut`.
 
-class OnboardingPayload(BaseModel):
-    focus: dict   # {choice: str, custom: str}
-    goal: dict
-    fear: dict
-
-class UserProfile(BaseModel):
-    id: str
-    email: str
-    name: str
-    focus: Optional[str] = None
-    goal: Optional[str] = None
-    fear: Optional[str] = None
-    agent_bio: str = ""
-    agent_skills: List[str] = []
-    agent_score: int = 100
-    onboarding_complete: bool = False
-```
-
-### `models/agent.py`
-
-```python
-class AgentOut(BaseModel):
-    idx: int          # Position in AGENTS list (0–1400)
-    name: str         # Short code name, e.g. "ARIA"
-    full_name: str    # Display name, e.g. "ARIA · Career Switch"
-    type: int         # 0=New, 1=Community, 2=Expert, 3=You
-    icon: str         # Emoji or symbol
-    bio: str          # One-sentence description
-    score: int        # Score metric
-```
-
-### `models/chat.py`
-
-```python
-class ChatMessageIn(BaseModel):
-    content: str
-
-class ChatMessageOut(BaseModel):
-    id: Optional[str]  # UUID for per-message deletion
-    role: str          # "user" | "assistant"
-    content: str
-    created_at: str    # ISO 8601
-
-class KnowledgeChunkIn(BaseModel):
-    content: str
-    category: str      # skill | experience | goal | fear | general
-
-class KnowledgeChunkOut(BaseModel):
-    id: str
-    content: str
-    category: str
-    created_at: str
-
-class ProfileUpdate(BaseModel):
-    bio: str
-    skills: List[str]
-    chunks_saved: int
-
-class ChatResponse(BaseModel):
-    message: ChatMessageOut
-    profile_update: Optional[ProfileUpdate] = None
-
-class EnhanceRequest(BaseModel):
-    content: str
-
-class EnhanceResponse(BaseModel):
-    enhanced: str
-
-class UploadResponse(BaseModel):
-    extracted_text: str
-```
-
-### `models/post.py`
-
-```python
-class PostOut(BaseModel):
-    id: str
-    agent: str              # Agent name
-    icon: str               # Emoji
-    type: int               # 0–3
-    score: int
-    content: str
-    tag: str
-    time: str               # Relative: "2m ago", "1h ago"
-    reactions: Dict[str, int]
-
-class CreatePostRequest(BaseModel):
-    text: str
-    tag: str
-
-class ReactRequest(BaseModel):
-    emoji: str
-
-class TrendingTagOut(BaseModel):
-    tag: str
-    count: int
-```
-
-### `models/user.py` (updated)
-
-`UserProfile` now includes:
-```python
-posts_count: int = 0   # computed at query time from posts table
-```
+`models/dev.py` — ~25 models covering login, LLM stats/logs, funnel, users, sim stats/logs, daily counts, community stats, feature flags, broadcast, chunk-eval stats/rows/summaries, sim-eval stats/rows, enhance stats/rows, and a generic `ActionResponse(ok, message)`.
 
 ---
 
-## 9. Router: Auth (`routers/auth_router.py`)
+## 9. Router: Auth
 
-**Prefix:** `/api/auth`
+`/api/auth` — `POST /signup`, `POST /login`, `POST /guest`. See [api-reference.md](api-reference.md#auth--apiauth). Guest creates/reuses a fixed shared row (`guest@unifund.app`) via `INSERT OR IGNORE` keyed on id.
 
-### `POST /api/auth/signup`
+## 10. Router: Users
 
-**Request body:** `SignupRequest`
+`/api/users` *(user token)* — `GET /me` returns the profile plus a live `COUNT(*)` for `posts_count` and `chunks_saved`. `POST /me/onboarding` stores `custom || choice` per field and sets `onboarding_complete=1`.
 
-```json
-{ "email": "user@example.com", "password": "s3cur3!", "name": "Jane" }
-```
+## 11. Router: Agents
 
-**Response:** `TokenResponse`
+`/api` — `GET /agents` (paginated, `size` ≤ 500), `GET /agents/search?q=` (matches `name` **or** `full_name`, max 20). Both read the in-memory `AGENTS` list.
 
-```json
-{
-  "access_token": "eyJhbGci...",
-  "token_type": "bearer",
-  "user_id": "a1b2-...",
-  "name": "Jane"
-}
-```
+## 12. Router: Posts
 
-**Logic:**
-1. Check if email already exists → `HTTP 400` if so.
-2. Generate UUID for user id.
-3. Hash password with bcrypt.
-4. Insert into `users` table with `created_at = datetime.utcnow()`.
-5. Create JWT via `create_access_token()`.
-6. Return `TokenResponse`.
+`/api` — `GET /posts` (50 newest + reactions, batch-fetched), `GET /posts/trending` (top 6 tags; declared before `POST /posts`), `POST /posts` *(user token)*, `POST /posts/{id}/react` *(user token)*. Relative timestamps ("2m ago") computed at read time.
 
----
+## 13. Router: Chatbot
 
-### `POST /api/auth/login`
+`/api/chatbot` *(user token)*. Helpers: `_get_history` (last 40), `_get_chunks`, `_save_message`, `_save_chunk`.
 
-**Request body:** `LoginRequest`
+- `POST /message` — opening-message short-circuit on empty history; otherwise LLM reply (via `chat_complete(..., return_usage=True)`, logged to `llm_logs`, `last_active` updated), then non-blocking knowledge extraction → on save: rebuild bio/skills, return `profile_update`, and queue `score_chunk_background` (Pipeline 1).
+- `GET /history` — full history (`ChatMessageOut[]`).
+- `GET /chunks` — `[{content, category, created_at}]`.
+- `DELETE /history` — deletes all messages, returns `{deleted: true}` (no opening re-seed).
+- `DELETE /history/{message_id}` — ownership-checked single delete.
+- `POST /enhance` — `enhance_content()` + Pipeline 3 guard; logs to `enhance_logs`; returns `{enhanced, flagged, hallucinations}`.
+- `POST /upload` — type-checked multipart; returns `{extracted_text, file_type, file_name}`.
+- `POST /knowledge` — manual chunk insert with category allowlist.
 
-```json
-{ "email": "user@example.com", "password": "s3cur3!" }
-```
+## 14. Router: Simulate
 
-**Response:** `TokenResponse` (same shape as signup)
+`/api` *(user token)*. `POST /simulate` (no body): gathers up to 15 chunks, builds `user_profile` + `onboarding` dicts, calls `simulate_life(user_profile, onboarding)`, strips fences, `json.loads`, validates `paths`. On failure → `_FALLBACK` (3 paths, `milestones` as `{month,event}` objects) with `output_type="fallback"`. Logs to `llm_logs` + `simulation_logs`, updates `last_active`, queues Pipeline 2 for real output. Returns `{simulation, knowledge_count}`.
 
-**Logic:**
-1. Fetch user by email (case-insensitive lookup).
-2. `verify_password()` → `HTTP 401` on mismatch.
-3. Create JWT and return `TokenResponse`.
+## 15. Router: Network
 
----
+`/api` — `GET /network/growth?timeframe=past|this|all` (static `GROWTH_DATA`; counts 1129 / 1763 / 2847), `GET /leaderboard` (top 12 by score, each with `rank, idx, name, full_name, icon, score, type`).
 
-## 10. Router: Users (`routers/users_router.py`)
+## 16. Router: Achievements
 
-**Prefix:** `/api/users`  
-**Authentication:** All routes require Bearer token.
+`/api` *(user token)*. `GET /achievements/{user_id}` returns all 6 `DEFAULT_BADGES` with `earned` flags; `first_node` is always earned.
 
-### `GET /api/users/me`
+## 17. Router: Runway
 
-Returns the authenticated user's full profile.
+`/api/runway` *(user token)*. CRUD over the `runway_*` tables plus two AI endpoints:
 
-**Response:** `UserProfile`
+- `POST /simulate` — computes income/spend/surplus, a 20% savings target, and a fixed/variable/subs/savings split (`_FIXED_IDS`, `_SUBS_IDS`); `_llm_recommendations()` returns 4 personalised `{title, detail, impact}` items (falls back to `_FALLBACK_RECS`). Returns `SimPlanOut`.
+- `POST /tip` — one-line transaction insight using the user's chunks + matching category budget; falls back to a generic tip on error.
 
-```json
-{
-  "id": "a1b2-...",
-  "email": "user@example.com",
-  "name": "Jane",
-  "focus": "Career Switch",
-  "goal": "Start a Company",
-  "fear": "Financial Risk",
-  "agent_bio": "Jane is a driven career-switcher...",
-  "agent_skills": ["leadership", "coding", "communication"],
-  "agent_score": 250,
-  "onboarding_complete": true
-}
-```
+Full endpoint list in [api-reference.md](api-reference.md#runway-unifund--apirunway-user-token).
 
-**Logic:**
-- Reads `current_user` dict from `get_current_user` dependency.
-- Parses `agent_skills` JSON string → Python list.
-- Returns `UserProfile`.
+## 18. Router: Agent Studio
+
+`/api` *(user token)*. `POST /studio/run` — three sequential LLM steps: `_scout_analyze_jd` → `_lens_match_profile` → `_resume_build`, all seeded with the user's knowledge chunks; each step has a JSON fallback. `_build_agent_logs()` returns the 9-entry ARIA→…→USER comm timeline for the front-end animation. Logs one `studio_resume` row to `llm_logs`.
+
+## 19. Router: Developer
+
+`/api/dev` — `POST /auth` is open; everything else requires `get_dev_user`. Groups: LLM health, onboarding funnel, user list + clear/suspend, post delete, broadcast, feature flags, simulation/community telemetry, and the three eval pipelines (chunk worst/best/all/by-user + queue endpoints, sim-eval stats/recent, enhance stats/logs). Helpers: `_quality_label(chunks)`, `_today_start()`, `_parse_flags()`. `COST_PER_TOKEN = 0.00003` (placeholder). Full list in [api-reference.md](api-reference.md#developer-control-plane--apidev-developer-token-except-auth).
 
 ---
 
-### `POST /api/users/me/onboarding`
+## 20. Service: Agent Seed
 
-Saves onboarding answers. Called by `App.jsx → handleEnter(answers)`.
-
-**Request body:** `OnboardingPayload`
-
-```json
-{
-  "focus": { "choice": "Career Switch", "custom": "" },
-  "goal": { "choice": "Start a Company", "custom": "EdTech startup" },
-  "fear": { "choice": "Financial Risk", "custom": "" }
-}
-```
-
-**Response:** Updated `UserProfile` with `onboarding_complete: true`
-
-**Logic:**
-- Extracts `custom` if non-empty, otherwise uses `choice`.
-- `UPDATE users SET focus=?, goal=?, fear=?, onboarding_complete=1`.
-- Returns full updated profile.
-
----
-
-## 11. Router: Agents (`routers/agents_router.py`)
-
-**Prefix:** `/api`
-
-### `GET /api/agents`
-
-Returns a paginated slice of all 1,401 agents.
-
-**Query params:**
-- `page`: int (default `1`)
-- `size`: int (default `100`, max `500`)
-
-**Response:** `list[AgentOut]`
-
-**Logic:** Slices the in-memory `AGENTS` list from `agent_seed.py`.
-
----
-
-### `GET /api/agents/search?q=`
-
-Full-text search across agent names.
-
-**Query params:**
-- `q`: str (minimum 1 character)
-
-**Response:** `list[AgentOut]` (max 20 results)
-
-**Logic:**
-- Lowercased substring match against `agent.name`.
-- Returns first 20 matches from in-memory `AGENTS` list.
-
----
-
-## 12. Router: Posts (`routers/posts_router.py`)
-
-**Prefix:** `/api`
-
-### `GET /api/posts`
-
-Fetches the community feed.
-
-**Response:** `list[PostOut]`
-
-**Logic:**
-1. `SELECT ... FROM posts ORDER BY created_at DESC LIMIT 50`.
-2. For each post, fetch all reactions from `reactions` table.
-3. Format `created_at` → relative time string ("2m ago", "1h ago", etc.).
-4. Return list of `PostOut`.
-
----
-
-### `GET /api/posts/trending`
-
-Returns the top 6 post tags by frequency. No auth required.
-
-**Response:** `list[TrendingTagOut]`
-
-```json
-[
-  { "tag": "Simulation", "count": 14 },
-  { "tag": "Insight", "count": 9 }
-]
-```
-
-**Logic:**
-- `SELECT tag, COUNT(*) as count FROM posts GROUP BY tag ORDER BY count DESC LIMIT 6`
-- Registered **before** `POST /api/posts` in the router to prevent FastAPI treating `"trending"` as a `{post_id}` path parameter.
-
----
-
-### `POST /api/posts`
-
-**Authentication:** Required
-
-**Request body:** `CreatePostRequest`
-
-```json
-{ "text": "Just connected with ARIA — incredible simulation!", "tag": "Milestone" }
-```
-
-**Response:** `PostOut` with reactions initialized to 0.
-
-**Logic:**
-1. Insert post: `agent_name = current_user.name.upper()`, `icon = "★"`, `type = 3`, `score = current_user.agent_score`.
-2. Initialize 3 default reactions: `["⚡", "✨", "💫"]` with count 0.
-3. Return `PostOut`.
-
----
-
-### `POST /api/posts/{post_id}/react`
-
-**Authentication:** Required
-
-**Request body:** `ReactRequest`
-
-```json
-{ "emoji": "⚡" }
-```
-
-**Response:**
-
-```json
-{ "emoji": "⚡", "count": 143 }
-```
-
-**Logic:**
-- `INSERT INTO reactions (post_id, emoji, count) VALUES (?, ?, 1) ON CONFLICT DO UPDATE SET count = count + 1`.
-- Returns updated `count`.
-
----
-
-## 13. Router: Chatbot (`routers/chatbot_router.py`)
-
-**Prefix:** `/api/chatbot`  
-**Authentication:** All routes require Bearer token.
-
-### `POST /api/chatbot/message`
-
-The core chatbot endpoint. Powers `ChatbotPage.jsx`.
-
-**Request body:** `ChatMessageIn`
-
-```json
-{ "content": "I have 3 years of Python experience and I'm pivoting to AI." }
-```
-
-**Response:** `ChatResponse`
-
-```json
-{
-  "message": {
-    "role": "assistant",
-    "content": "That's a strong foundation...",
-    "created_at": "2026-05-17T10:30:00.000Z"
-  },
-  "profile_update": {
-    "bio": "Jane is a Python-fluent developer...",
-    "skills": ["Python", "AI/ML"],
-    "chunks_saved": 3
-  }
-}
-```
-
-**Full Logic:**
-
-```
-1. If user has 0 chat messages → return OPENING_MESSAGE (no LLM call).
-2. Save user message to chat_messages table.
-3. Fetch chat history (last 40 messages).
-4. Fetch user's knowledge_chunks (all).
-5. Build system prompt via build_system_prompt(name, chunks).
-6. Call chat_complete(messages=[system, ...history]) → assistant reply.
-7. Save assistant reply to chat_messages.
-8. Run extract_knowledge(user_message) → {should_save, category, content}.
-9. If should_save:
-   a. Insert into knowledge_chunks.
-   b. Fetch updated chunks.
-   c. Call build_agent_bio(name, chunks) → new bio.
-   d. Parse skills from chunks (up to 8 "skill" category entries).
-   e. UPDATE users SET agent_bio=?, agent_skills=?.
-   f. Set profile_update in response.
-10. Return ChatResponse.
-```
-
-> **Note:** Step 8–9 runs async but errors are non-blocking — the chat reply is returned even if knowledge extraction fails.
-
----
-
-### `GET /api/chatbot/history`
-
-Returns the full conversation history for the current user.
-
-**Response:** `list[ChatMessageOut]` ordered `ASC` by `created_at`. Each item includes `id` for deletion.
-
----
-
-### `DELETE /api/chatbot/history`
-
-Clears all chat messages for the current user and re-seeds the opening message.
-
-**Response:**
-```json
-{ "cleared": 14, "opening_message": { "id": "...", "role": "assistant", "content": "...", "created_at": "..." } }
-```
-
-**Logic:**
-1. `DELETE FROM chat_messages WHERE user_id = ?`
-2. Re-insert the `OPENING_MESSAGE` and return it in the response.
-
----
-
-### `DELETE /api/chatbot/history/{message_id}`
-
-Deletes a single message by ID. Validates ownership.
-
-**Response:** `{ "deleted": true }`
-
-**Errors:**
-- `404` if message not found
-- `403` if message belongs to another user
-
----
-
-### `POST /api/chatbot/enhance`
-
-Expands a brief user input into a richer, first-person statement using the LLM + existing knowledge context.
-
-**Request body:** `EnhanceRequest`
-```json
-{ "content": "I know Python" }
-```
-
-**Response:** `EnhanceResponse`
-```json
-{ "enhanced": "I have three years of hands-on Python experience, primarily building data pipelines..." }
-```
-
-**Logic:**
-1. Fetch user's existing knowledge chunks (up to 10, for context).
-2. Call `enhance_content(brief, user_name, chunks)` → LLM call (temp=0.7, max_tokens=200).
-3. Returns expanded first-person statement.
-
----
-
-### `POST /api/chatbot/upload`
-
-Extracts text from an uploaded file. Accepts multipart form data.
-
-**Supported types:**
-- `application/pdf` → `pypdf`
-- `application/vnd.openxmlformats-officedocument.wordprocessingml.document` → `python-docx`
-- `text/plain` → UTF-8 decode
-- `image/*` (png, jpeg, webp, gif) → Azure OpenAI vision (base64 encode → LLM describe)
-
-**Response:** `UploadResponse`
-```json
-{ "extracted_text": "John Smith — Software Engineer\n3 years Python, FastAPI, PostgreSQL..." }
-```
-
-**Error:** `HTTP 400` for unsupported file type.
-
----
-
-### `POST /api/chatbot/knowledge`
-
-Manually saves a knowledge chunk (used for testing or explicit saves).
-
-**Request body:** `KnowledgeChunkIn`
-
-```json
-{ "content": "I'm fluent in public speaking", "category": "skill" }
-```
-
-**Validation:** `category` must be one of `{skill, experience, goal, fear, general}` → `HTTP 400` otherwise.
-
-**Response:** `KnowledgeChunkOut`
-
----
-
-## 14. Router: Simulate (`routers/simulate_router.py`)
-
-**Prefix:** `/api`  
-**Authentication:** Required.
-
-### `POST /api/simulate`
-
-Runs a full life simulation using the user's profile and onboarding data.
-
-**Response:**
-
-```json
-{
-  "paths": [
-    {
-      "title": "The Research Path",
-      "icon": "🔬",
-      "probability": 72,
-      "tagline": "Deep work, slow burn, lasting impact",
-      "milestones": [
-        "Month 6 — First paper accepted",
-        "Month 14 — PhD offer from ETH Zurich",
-        "Month 24 — Leading a research team"
-      ],
-      "agent_match": "ARIA"
-    },
-    { ... },
-    { ... }
-  ],
-  "collective_insight": "72 agents who walked similar paths chose research over startup.",
-  "knowledge_count": 8
-}
-```
-
-**Logic:**
-1. Load current user profile.
-2. Fetch up to 15 `knowledge_chunks` for the user.
-3. Build `user_profile` dict: `{name, focus, goal, fear, bio, skills, score, knowledge}`.
-4. Call `simulate_life(user_profile)` → LLM call with `max_tokens=1500`, explicit JSON skeleton in system prompt.
-5. Strip markdown fences + `json.loads()` the result.
-6. Validate structure: must have `paths` (list of 3) + `collective_insight`.
-7. Falls back to a hardcoded 3-path template on any parse or validation error.
-8. Returns parsed result + `knowledge_count`.
-
-**LLM prompt:** System prompt includes an explicit JSON skeleton (no markdown fences instruction). User message includes the full profile and all knowledge chunks.
-
----
-
-## 15. Router: Network (`routers/network_router.py`)
-
-**Prefix:** `/api`
-
-### `GET /api/network/growth?timeframe=`
-
-Returns network growth metrics for the timeline scrubber in `AgenticWebPage.jsx`.
-
-**Query params:**
-- `timeframe`: `"past"` | `"this"` | `"all"` (default `"all"`)
-
-**Response:**
-
-```json
-{
-  "label": "This Month",
-  "count": 1763,
-  "delta": "+56%",
-  "growth": [1129, 1280, 1450, 1620, 1763]
-}
-```
-
-**Timeframe data:**
-| Timeframe | Label | Count | Delta |
-|---|---|---|---|
-| `past` | Past Month | 554 | +18% |
-| `this` | This Month | 1763 | +56% |
-| `all` | All Time | 1401 | +∞ |
-
----
-
-### `GET /api/leaderboard`
-
-Returns the top 12 agents by score.
-
-**Response:**
-
-```json
-[
-  { "rank": 1, "name": "ARIA", "bio": "...", "icon": "🧠", "score": 9842, "type": 2 },
-  ...
-]
-```
-
-**Logic:**
-- Sorts in-memory `AGENTS` list by `score` descending.
-- Returns top 12 with `rank` field added (1-indexed).
-
----
-
-## 16. Router: Achievements (`routers/achievements_router.py`)
-
-**Prefix:** `/api`  
-**Authentication:** Required.
-
-### `GET /api/achievements/{user_id}`
-
-Returns the full badge list for a user, with `earned` flags.
-
-**Response:**
-
-```json
-[
-  {
-    "key": "first_node",
-    "icon": "★",
-    "label": "First Node",
-    "desc": "You joined the web",
-    "color": "#FFD54F",
-    "earned": true
-  },
-  {
-    "key": "seer",
-    "icon": "🔮",
-    "label": "Seer",
-    "desc": "Run your first simulation",
-    "color": "#CE93D8",
-    "earned": false
-  },
-  ...
-]
-```
-
-**All badges:**
-
-| Key | Icon | Label | Color | Earn Condition |
-|---|---|---|---|---|
-| `first_node` | ★ | First Node | `#FFD54F` | Account exists (always earned) |
-| `seer` | 🔮 | Seer | `#CE93D8` | Run 1 simulation |
-| `connected` | 🌐 | Connected | `#4FC3F7` | Link to 10 agents |
-| `signal` | ⚡ | Signal | `#00D1FF` | Complete Phase 1 |
-| `evolution` | 🧬 | Evolution | `#7B61FF` | Run 10 simulations |
-| `diamond` | 💎 | Diamond | `#E0E0E0` | Reach score 1000+ |
-
-**Logic:**
-- Fetches `badge_key` set from `achievements` table for this user.
-- Always adds `first_node` for any existing account.
-- Returns all 6 badges with `earned = badge_key in earned_set`.
-
----
-
-## 17. Service: Agent Seed (`services/agent_seed.py`)
-
-**Location:** [backend-python/services/agent_seed.py](../backend-python/services/agent_seed.py)
-
-The critical determinism module. Builds all 1,401 agents using the same `xorshift32` RNG as the JavaScript frontend so that names, scores, and icons match exactly between Python and JS.
-
-> **CRITICAL:** Never modify the RNG logic without re-validating against the frontend's `agentData.js` output. Validated checkpoints: ARIA=9842, NOX=9120, VEDA=8633.
-
-### xorshift32 RNG
+`services/agent_seed.py` ports `xorshift32` from `agentData.js` so Python and JS produce identical agents.
 
 ```python
 def sr(seed: int) -> float:
-    """xorshift32 — mirrors JavaScript implementation bit-for-bit."""
     seed &= 0xFFFFFFFF
     seed ^= (seed << 13) & 0xFFFFFFFF
     seed ^= (seed >> 17) & 0xFFFFFFFF
@@ -995,478 +340,116 @@ def sr(seed: int) -> float:
     return (seed & 0xFFFFFFFF) / 0xFFFFFFFF
 ```
 
-This produces identical output to the JS `xorshift32(seed)` used in `agentData.js`.
+30 hand-crafted agents (idx 0–29), procedural agents 30–1399, and a `YOU` user agent at idx 1400. Exposes `AGENTS: list[dict]` built once at import.
 
-### Notable Agents (Indices 0–29)
-
-30 hand-crafted agents with fixed names, bios, types, and scores:
-
-**Expert tier (type 2):**
-
-| Idx | Name | Role | Score |
-|---|---|---|---|
-| 0 | ARIA | Career Switch | 9,842 |
-| 1 | NOX | Founder | 9,120 |
-| 2 | VEDA | Masters Abroad | 8,633 |
-| 3 | ORION | Founder | 7,980 |
-| 4 | LYRA | Personal Growth | 7,540 |
-| 5 | ECHO | Career Switch | 7,190 |
-| 6 | DYNA | Exploring Life | 6,870 |
-| 7 | FLUX | Founder | 6,540 |
-| 8 | KIRA | Masters Abroad | 6,220 |
-| 9 | NEXUS | Career Switch | 5,910 |
-
-**Community tier (type 1):**
-
-| Idx | Name | Role | Score |
-|---|---|---|---|
-| 10 | KAI | Bridge Builder | 4,890 |
-| 11 | REX | Problem Solver | 4,430 |
-| 12 | MIRA | Mirror Node | 3,980 |
-| ... | ... | ... | ... |
-
-**New tier (type 0):**
-
-| Idx | Name | Role | Score |
-|---|---|---|---|
-| 20–29 | Various | New nodes | 440–1,400 |
-
-### Procedural Agents (Indices 30–1399)
-
-Generated at module import via `_build_agents()`:
-
-- **Name:** `PREFIXES[i % 50] + SUFFIXES[i % 20]` → 1,000 unique combinations.
-- **Type:** 1 (Community) by default.
-- **Icon:** Picked deterministically from type-specific pools using RNG seeded by `idx`.
-- **Bio:** `"Node #X. [Role] in the UniMind web."` where role cycles through Explorer, Builder, Collaborator, Community Node, Connector.
-- **Score:** `int(sr(idx * 13 + 7) * 380) + 10` → range 10–390.
-
-### User Agent (Index 1400)
-
-```python
-{
-    "idx": 1400,
-    "name": "YOU",
-    "full_name": "YOU",
-    "type": 3,
-    "icon": "★",
-    "bio": "That's you. Welcome to the web.",
-    "score": 100,
-}
-```
-
-### Exported Constant
-
-```python
-AGENTS: list[dict]   # 1,401 agent dicts, built once at module import
-```
-
-Used directly by `agents_router.py` and `network_router.py`.
+> **CRITICAL:** never change the RNG without re-validating against the frontend. Checkpoints: ARIA=9842, NOX=9120, VEDA=8633.
 
 ---
 
-## 18. Service: Azure OpenAI (`services/azure_openai.py`)
+## 21. Service: Azure OpenAI
 
-**Location:** [backend-python/services/azure_openai.py](../backend-python/services/azure_openai.py)
-
-Wraps the `AsyncAzureOpenAI` client as a lazy singleton. All LLM calls go through this module.
-
-### Client Initialization
+`services/azure_openai.py` — lazy `AsyncAzureOpenAI` singleton (`get_client()`), `DEPLOYMENT` from env.
 
 ```python
-_client: AsyncAzureOpenAI | None = None
-
-def get_client() -> AsyncAzureOpenAI:
-    global _client
-    if _client is None:
-        _client = AsyncAzureOpenAI(
-            api_key=os.getenv("OPENAI_API_KEY"),
-            azure_endpoint=os.getenv("AZURE_ENDPOINT"),
-            api_version=os.getenv("AZURE_API_VERSION", "2024-12-01-preview"),
-        )
-    return _client
+async def chat_complete(messages, temperature=0.8, max_tokens=800, return_usage=False):
+    ...
+    response = await client.chat.completions.create(model=DEPLOYMENT, messages=messages, max_tokens=max_tokens)
+    ...
 ```
 
-### `chat_complete(messages, temperature=0.8, max_tokens=600) -> str`
+> **Gotcha:** `temperature` is accepted by `chat_complete()` but **not forwarded** to the Azure call (the `create()` invocation only passes `model`, `messages`, `max_tokens`). The deployment's default temperature is used regardless. Default `max_tokens` is **800**. When `return_usage=True` it returns `{content, tokens_in, tokens_out, duration_ms}` (used everywhere telemetry/eval is logged).
 
-Standard chat completion call. `max_tokens` is now a parameter (default 600).
+`simulate_life(user_profile, onboarding)` — builds a strict-JSON system prompt (3 paths, `milestones` as `{month,event}`, probabilities sum to 100) + a user message from name/bio/focus/goal/fear/knowledge. Calls with `max_tokens=1500, return_usage=True` and returns `(content, usage_dict)`.
 
-```python
-async def chat_complete(messages: list[dict], temperature: float = 0.8, max_tokens: int = 600) -> str:
-    client = get_client()
-    response = await client.chat.completions.create(
-        model=os.getenv("DEPLOYMENT_NAME", "gpt-5-chat"),
-        messages=messages,
-        max_tokens=max_tokens,
-        temperature=temperature,
-    )
-    return response.choices[0].message.content
-```
+---
 
-**Temperature conventions:**
+## 22. Service: Chatbot
 
-| Use case | Temperature | Reason |
+`services/chatbot_service.py`:
+
+- `OPENING_MESSAGE` — canned greeting returned without an LLM call.
+- `build_system_prompt(name, chunks)` — sharp 6–8-exchange interviewer prompt; injects the last 10 chunks.
+- `extract_knowledge(user_message)` — temp 0.2; returns `{should_save, category, content}` or `None` (non-blocking).
+- `build_agent_bio(name, chunks)` — 2-sentence bio from up to 12 chunks; fallback string on error.
+- `enhance_content(brief, user_name, chunks)` — expands a brief into 2–4 first-person sentences (temp 0.75, max_tokens 300); returns the brief on error.
+- `extract_text_from_file(data, content_type, filename) -> (text, file_type)` — PDF (first 20 pages), DOCX, plain text, or image (base64 vision). All text truncated to ~4000 chars; `file_type` ∈ `text|pdf|docx|image|unknown`.
+
+---
+
+## 23. Service: Eval (3 pipelines)
+
+`services/eval_service.py` runs as `BackgroundTasks` and connects to SQLite directly (`aiosqlite.connect(DB_PATH)`).
+
+**Pipeline 1 — chunk quality.** `score_chunk()` rates a chunk 1–10 with flags (temp 0.1). `score_chunk_background()` writes `eval_*` columns on `knowledge_chunks`, sets `eval_status='done'`, and logs a `chunk_eval` row to `llm_logs`. Triggered on chunk save and by dev `chunks/{id}/eval` + `chunks/eval-all`.
+
+**Pipeline 2 — simulation personalisation.** `score_simulation()` scores `personalisation` + `groundedness` (1–10) and lists `hallucinations`. `score_simulation_background()` inserts into `simulation_evals` and logs a `sim_eval` row. Triggered only for real LLM simulation output.
+
+**Pipeline 3 — enhancement hallucination guard.** `check_enhancement_hallucinations()` compares the AI expansion against the original + chunks, returning `{flagged, hallucinations, …}`. Called inline by `POST /chatbot/enhance` (result stored in `enhance_logs`).
+
+Every pipeline records token usage so eval cost shows up in LLM stats.
+
+---
+
+## 24. Seed Data
+
+- `seed_data/posts_seed.py` — `get_seed_posts()` → 10 community posts (with reactions) matching the frontend's original `INITIAL_POSTS`.
+- `seed_data/runway_seed.py` — `seed_ramya()` creates demo user **Ramya** (`ramya@unimind.dev` / `ramya2025`, id `ramya-seed-001`) with a full runway dataset: 3 income sources, 11 categories, 15 transactions, 2 bank accounts, savings balance, and chart data. Idempotent (`INSERT OR IGNORE` / upsert).
+- `seed_data/run_seed.py` — creates tables, inserts seed posts (skipping existing), then calls `seed_ramya()`. Safe to re-run.
+
+---
+
+## 25. Security Model
+
+- **JWT** HS256, user 7-day / dev 12-hour, secret from `JWT_SECRET`. Dev routes additionally require the `role:"developer"` claim.
+- **Passwords** bcrypt-hashed, salted, never stored/returned in plaintext.
+- **SQL** fully parameterized (`?` placeholders) — no string interpolation.
+- **CORS** restricted to localhost/127.0.0.1 (any port) via regex.
+- **Validation** Pydantic v2 on all bodies; chatbot category allowlist; upload content-type allowlist.
+- **Secrets** `.env` git-ignored; Azure key + JWT secret never logged or returned.
+- **Known gaps:** `suspended` flag not enforced by any route; no rate limiting; log tables grow unbounded; the shared guest account means guest data is not isolated per browser.
+
+---
+
+## 26. Key Architecture Patterns
+
+1. **Async throughout** — `async def` routes, `aiosqlite`, `AsyncAzureOpenAI`.
+2. **Dependency injection** — `Depends(get_db)`, `Depends(get_current_user)`, `Depends(get_dev_user)`. Never re-wrap `db` in `async with`.
+3. **In-memory agent store** — 1,401 agents built once at import.
+4. **Non-blocking enrichment** — knowledge extraction and all 3 eval pipelines run after the user response is ready; failures never block the request.
+5. **Telemetry on every LLM call** — `chat_complete(return_usage=True)` feeds `llm_logs` (tokens, latency, fallback status) consumed by the developer plane.
+6. **Deterministic fallbacks** — simulation, runway plan/tips, and studio steps all degrade to canned output on malformed LLM JSON.
+7. **xorshift32 parity** — Python `sr()` mirrors JS `xorshift32()` bit-for-bit.
+
+---
+
+## 27. Frontend Integration Reference
+
+All frontend calls go through `frontend-react/src/lib/api.js` (user requests via `request()`, dev requests via `devRequest()`; both auto-attach their respective token). The user-request helper mints a fresh guest token and retries once on `401`.
+
+| Endpoint | HTTP | api.js function |
 |---|---|---|
-| Knowledge extraction | 0.2 | Deterministic JSON output needed |
-| Regular chat | 0.8 | Natural, varied conversation |
-| Life simulation | 0.9 | Creative, vivid narrative output |
-
-### `simulate_life(user_profile) -> str`
-
-Calls the LLM with a structured prompt and returns raw JSON (unparsed — parsing is done in `simulate_router.py`).
-
-**System prompt includes:**
-- Role: "UniMind's Collective Intelligence Engine"
-- Instruction to return only JSON (no markdown fences)
-- Explicit JSON skeleton with field names and types
-- Required: `paths` (array of 3), each with `title`, `icon`, `probability`, `tagline`, `milestones` (array of 3), `agent_match`
-- Required: `collective_insight` string
-
-**User message includes:**
-```
-Name: {name}
-Focus: {focus}
-Goal: {goal}
-Fear: {fear}
-Bio: {bio}
-Skills: {skills}
-Score: {score}
-
-Knowledge:
-- {chunk_content} [{category}]
-- ... (up to 15 chunks)
-```
-
-**Token budget:** `max_tokens=1500` (raised from 600 to prevent truncation of the JSON).
-
----
-
-## 19. Service: Chatbot (`services/chatbot_service.py`)
-
-**Location:** [backend-python/services/chatbot_service.py](../backend-python/services/chatbot_service.py)
-
-Five functions used by `chatbot_router.py`.
-
-### Opening Message
-
-The first assistant message — returned without an LLM call:
-
-```
-Welcome to UniMind's knowledge engine. I'm here to build your digital agent profile —
-the smarter your profile, the more accurate your life simulations will be.
-Let's start simple: what's your name, and what are you most passionate about right now?
-```
-
-### `build_system_prompt(name: str, chunks: list[dict]) -> str`
-
-Constructs the system prompt injected at position `[0]` of every chat completion call.
-
-```
-You are UniMind's personal knowledge agent — a thoughtful AI interviewer.
-Your mission: learn everything meaningful about this user to build their digital agent profile.
-
-Rules:
-1. Ask ONE focused question per reply. Keep responses under 100 words.
-2. After they share something concrete, acknowledge it and dig one level deeper.
-3. Use their name warmly. Be direct and curious, not corporate.
-4. After 12-15 exchanges, say 'Your agent profile is ready'...
-5. Never repeat a question you already asked.
-
-What you know about {name} so far:
-- {chunk_content} [{category}]
-- ... (last 10 chunks)
-```
-
-If no chunks exist yet: `"none yet"`.
-
----
-
-### `extract_knowledge(user_message: str) -> dict | None`
-
-Determines whether a user message contains actionable knowledge worth saving.
-
-**LLM call:** temperature 0.2, max_tokens 150.
-
-**Prompt asks LLM to return JSON:**
-```json
-{
-  "should_save": true,
-  "category": "skill",
-  "content": "Has 3 years of Python experience"
-}
-```
-
-**Parsing:**
-- Strips markdown fences (` ```json ... ``` `).
-- `json.loads()` the result.
-- Returns `None` on any parse or LLM error (non-blocking).
-
-**Valid categories:** `skill`, `experience`, `goal`, `fear`, `general`
-
----
-
-### `build_agent_bio(name: str, chunks: list[dict]) -> str`
-
-Generates a 2-sentence agent bio from accumulated knowledge chunks.
-
-**LLM call:** temperature 0.7, max_tokens 120.
-
-**Prompt:** Provides first 12 chunks + style instruction: "cosmic, data-driven, confident."
-
-**Fallback:** Returns `"{name} is exploring new paths in the UniMind web."` if LLM call fails.
-
-**Example output:**
-```
-Jane is a Python-fluent developer pivoting into AI, driven by a vision 
-to build tools that expand human potential.
-```
-
----
-
-### `enhance_content(brief: str, user_name: str, chunks: list[dict]) -> str`
-
-Expands a short user message into a richer first-person statement.
-
-**LLM call:** temperature 0.7, max_tokens 200.
-
-**Prompt:** Provides the brief input + user name + up to 10 existing knowledge chunks as context. Instructs LLM to write 2–4 sentences in first person, past tense where applicable, specific details.
-
-**Returns:** Expanded statement string. Falls back to the original brief on error.
-
----
-
-### `extract_text_from_file(data: bytes, content_type: str, filename: str) -> str`
-
-Extracts text from uploaded file bytes.
-
-| Content-type | Method |
-|---|---|
-| `application/pdf` | `pypdf.PdfReader` — extracts all page text |
-| `.docx` | `python-docx Document` — concatenates all paragraph text |
-| `text/plain` | `data.decode('utf-8')` |
-| `image/*` | Base64 encode → Azure OpenAI vision call ("describe all text in this image") |
-
-**Returns:** Extracted text string (may be empty for blank documents).
-
----
-
-## 20. Seed Data (`seed_data/`)
-
-### `seed_data/posts_seed.py`
-
-Defines `SEED_POSTS`: a list of 10 dicts exactly matching the frontend's `INITIAL_POSTS` array.
-
-**Each post dict:**
-```python
-{
-    "id": "seed-1",
-    "agent_name": "ARIA",
-    "agent_icon": "🔮",
-    "agent_type": 2,
-    "agent_score": 9842,
-    "content": "Just completed my 847th life simulation...",
-    "tag": "Simulation",
-    "user_id": None,
-    "created_at": "...",   # Computed as datetime.utcnow() - timedelta(minutes=N)
-    "reactions": {
-        "⚡": 142,
-        "✨": 89,
-        "🔬": 34,
-    }
-}
-```
-
-**Agents used in seed posts:** ARIA, NOX, VEDA, LUME, ECHO, ORION, FAR, LYRA, DYNA, KALI.
-
----
-
-### `seed_data/run_seed.py`
-
-One-time initialization script. Safe to re-run (uses `INSERT OR IGNORE`).
-
-```bash
-python seed_data/run_seed.py
-```
-
-**Steps:**
-1. `load_dotenv()` to read `DB_PATH`.
-2. `asyncio.run(main())`:
-   - Opens aiosqlite connection.
-   - Executes `CREATE_TABLES_SQL` from `db.py`.
-   - Iterates `SEED_POSTS`, inserts each post + its reactions.
-3. Prints: `"Seeded 10 posts. Database ready."`
-
----
-
-## 21. Data Flow Diagrams
-
-### Auth Flow
-
-```
-Client                          Backend
-  │                               │
-  │── POST /api/auth/signup ──────►│
-  │                               │ hash_password()
-  │                               │ INSERT INTO users
-  │                               │ create_access_token()
-  │◄─── TokenResponse ────────────│
-  │  {access_token, user_id, name}│
-  │                               │
-  │ Store token in localStorage   │
-  │                               │
-  │── GET /api/users/me ──────────►│
-  │  Authorization: Bearer <token>│
-  │                               │ get_current_user()
-  │                               │ SELECT * FROM users
-  │◄─── UserProfile ──────────────│
-```
-
-### Chat + Knowledge Extraction Flow
-
-```
-Client                      Backend                      Azure OpenAI
-  │                            │                              │
-  │── POST /chatbot/message ──►│                              │
-  │   {content: "..."}         │                              │
-  │                            │── chat_complete() ──────────►│
-  │                            │   [system_prompt, ...history]│
-  │                            │◄── assistant reply ──────────│
-  │                            │                              │
-  │                            │── extract_knowledge() ──────►│
-  │                            │   (user message only)        │
-  │                            │◄── {should_save, category}──│
-  │                            │                              │
-  │                            │ INSERT knowledge_chunks      │
-  │                            │── build_agent_bio() ────────►│
-  │                            │◄── new bio string ───────────│
-  │                            │ UPDATE users bio+skills      │
-  │                            │                              │
-  │◄── ChatResponse ───────────│
-  │  {message, profile_update} │
-```
-
-### Post + Reaction Flow
-
-```
-Client                          Backend
-  │                               │
-  │── POST /api/posts ────────────►│
-  │   {text, tag}                 │ INSERT posts (agent_name=USER.name, type=3)
-  │                               │ INSERT reactions ×3 (⚡✨💫, count=0)
-  │◄── PostOut ───────────────────│
-  │                               │
-  │── POST /api/posts/{id}/react ─►│
-  │   {emoji: "⚡"}               │ INSERT OR UPDATE reactions.count+1
-  │◄── {emoji, count} ────────────│
-```
-
----
-
-## 22. Security Model
-
-### JWT
-
-- Algorithm: `HS256`
-- Expiry: 7 days
-- Payload: `{sub: user_id, name: user_name, exp: timestamp}`
-- Secret: `JWT_SECRET` env var (never hardcoded)
-
-### Password Storage
-
-- `passlib[bcrypt]` with `bcrypt==4.0.1` (pinned for compatibility)
-- Passwords are salted and hashed — never stored in plaintext
-- Verification via `passlib.context.verify(plain, hash)`
-
-### SQL Injection Prevention
-
-- All queries use parameterized placeholders (`?`)
-- No string interpolation in SQL
-- Example: `await db.execute("SELECT * FROM users WHERE email = ?", (email,))`
-
-### CORS
-
-- Restricted to `http://localhost:5173` (Vite dev server)
-- `allow_credentials=True` for cookie-based auth if needed in future
-
-### Input Validation
-
-- Pydantic v2 validates all request bodies before reaching route handlers
-- `knowledge` category is validated against allowlist: `{skill, experience, goal, fear, general}`
-- Email uniqueness enforced at DB level (UNIQUE constraint)
-
-### Secrets
-
-- `.env` is in `.gitignore`
-- Azure API key never appears in responses, logs, or frontend code
-- JWT secret never logged
-
----
-
-## 23. Key Architecture Patterns
-
-### 1. Async Throughout
-
-All routes are `async def`. Database calls use `aiosqlite`. LLM calls use `AsyncAzureOpenAI`. No blocking I/O anywhere in the request path.
-
-### 2. Dependency Injection
-
-Two core FastAPI dependencies used across routes:
-
-```python
-db = Depends(get_db)                          # Open DB connection
-current_user = Depends(get_current_user)      # Authenticated user dict
-```
-
-`get_db()` uses `async with aiosqlite.connect(...)` internally — **never** re-wrap `db` in `async with`.
-
-### 3. In-Memory Agent Store
-
-All 1,401 agents live in the `AGENTS` list in memory (built once at module import). This avoids a `SELECT * FROM agents` on every request and keeps agent data fast and deterministic.
-
-### 4. Non-Blocking Knowledge Extraction
-
-Knowledge extraction runs after the assistant reply is ready. If it fails, the user still gets their chat response — the `profile_update` field is just `None`.
-
-### 5. Relative Timestamps
-
-Posts are stored as ISO 8601 UTC strings. The `GET /api/posts` route computes "2m ago" / "1h ago" / "3d ago" at read time rather than storing them.
-
-### 6. xorshift32 Parity
-
-The Python `sr()` function in `agent_seed.py` exactly mirrors the JavaScript `xorshift32()` in `agentData.js`. This ensures that agent index 0 always maps to ARIA with score 9842 in both environments.
-
----
-
-## 24. Frontend Integration Reference
-
-This table maps every API endpoint to the frontend file and function that calls it.
-
-| Endpoint | HTTP | Frontend Location | api.js Function |
-|---|---|---|---|
-| `/api/auth/signup` | POST | `SignupPage.jsx` (bypassed) | `signup()` |
-| `/api/auth/login` | POST | `LoginPage.jsx` (bypassed) | `login()` |
-| `/api/users/me` | GET | `App.jsx` (session restore) / `CommunityPage ProfileCard` | `getMe()` |
-| `/api/users/me/onboarding` | POST | `App.jsx → handleEnter()` | `saveOnboarding()` |
-| `/api/agents` | GET | `AgenticWebPage.jsx` | `getAgents()` |
-| `/api/agents/search?q=` | GET | `AgenticWebPage.jsx → SearchBar` | `searchAgents(q)` |
-| `/api/posts` | GET | `CommunityPage.jsx` (mount) | `getPosts()` |
-| `/api/posts/trending` | GET | `CommunityPage.jsx → TrendingSection` | `getTrendingTags()` |
-| `/api/posts` | POST | `CommunityPage.jsx → PostComposer` | `createPost()` |
-| `/api/posts/{id}/react` | POST | `CommunityPage.jsx → PostCard` | `reactToPost()` |
-| `/api/chatbot/message` | POST | `ChatbotPage.jsx → sendMessage()` | `sendChatMessage()` |
-| `/api/chatbot/history` | GET | `ChatbotPage.jsx` (mount) | `getChatHistory()` |
-| `/api/chatbot/history` | DELETE | `ChatbotPage.jsx → clearHistory()` | `clearChatHistory()` |
-| `/api/chatbot/history/{id}` | DELETE | `ChatbotPage.jsx → MessageBubble ×` | `deleteChatMessage(id)` |
-| `/api/chatbot/enhance` | POST | `ChatbotPage.jsx → ✦ button` | `enhanceContent(content)` |
-| `/api/chatbot/upload` | POST | `ChatbotPage.jsx → 📎 button` | `uploadFile(file)` |
-| `/api/chatbot/knowledge` | POST | `ChatbotPage.jsx` (manual save) | `saveKnowledge()` |
-| `/api/simulate` | POST | `AgenticWebPage.jsx → Core click` | `runSimulate()` |
-| `/api/network/growth` | GET | `AgenticWebPage.jsx → GrowthTimeline` | `getNetworkGrowth()` |
-| `/api/leaderboard` | GET | `AgenticWebPage.jsx → LeaderboardModal` / `CommunityPage → FeaturedStoriesBar` | `getLeaderboard()` |
-| `/api/achievements/{id}` | GET | `CommunityPage.jsx → ProfileCard` | `getAchievements()` |
-
-> All frontend API calls go through `frontend-react/src/lib/api.js`. Never use `fetch()` directly in page components.
-
----
-
-*This document covers the complete backend as of May 2026. All 22 endpoints are implemented and tested. The Azure OpenAI integration (chatbot + simulation + enhance + file vision) requires a valid `.env` with `OPENAI_API_KEY` and `AZURE_ENDPOINT`.*
+| `/api/auth/guest` | POST | `guestLogin()` |
+| `/api/auth/signup` / `login` | POST | `signup()` / `login()` |
+| `/api/users/me` | GET | `getMe()` |
+| `/api/users/me/onboarding` | POST | `saveOnboarding()` |
+| `/api/agents` / `agents/search` | GET | `getAgents()` / `searchAgents()` |
+| `/api/posts` | GET/POST | `getPosts()` / `createPost()` |
+| `/api/posts/trending` | GET | `getTrendingTags()` |
+| `/api/posts/{id}/react` | POST | `reactToPost()` |
+| `/api/simulate` | POST | `runSimulate()` |
+| `/api/network/growth` / `leaderboard` | GET | `getNetworkGrowth()` / `getLeaderboard()` |
+| `/api/achievements/{id}` | GET | `getAchievements()` |
+| `/api/chatbot/message` | POST | `sendChatMessage()` |
+| `/api/chatbot/history` | GET/DELETE | `getChatHistory()` / `clearChatHistory()` |
+| `/api/chatbot/chunks` | GET | `getChatChunks()` |
+| `/api/chatbot/history/{id}` | DELETE | `deleteChatMessage()` |
+| `/api/chatbot/enhance` | POST | `enhanceContent()` |
+| `/api/chatbot/upload` | POST | `uploadFile()` (multipart) |
+| `/api/chatbot/knowledge` | POST | `saveKnowledge()` |
+| `/api/runway/*` | GET/POST/PUT/DELETE | `getRunway*` / `addRunway*` / `updateRunway*` / `deleteRunway*` |
+| `/api/runway/simulate` / `tip` | POST | `runRunwaySimulate()` / `generateTransactionTip()` |
+| `/api/studio/run` | POST | `runStudioPipeline()` |
+| `/api/dev/auth` | POST | `devLogin()` |
+| `/api/dev/*` | GET/POST/DELETE | `getDev*` / `clearDevUser` / `suspendDevUser` / `deleteDevPost` / `broadcastMessage` / `updateDevFlags` / `getChunk*` / `getSimEval*` / `getEnhance*` / `evalOneChunk` / `evalAllPending` |
+
+*Backend covers 11 router groups. The Azure OpenAI integration (chatbot, simulation, enhance, file vision, runway, studio, and the 3 eval pipelines) requires a valid `.env` with `OPENAI_API_KEY` + `AZURE_ENDPOINT`.*

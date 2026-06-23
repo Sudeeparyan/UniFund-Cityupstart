@@ -1,3 +1,5 @@
+import asyncio
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -6,12 +8,24 @@ from fastapi.middleware.cors import CORSMiddleware
 from db import create_tables
 from routers import auth_router, users_router, agents_router, posts_router
 from routers import simulate_router, network_router, achievements_router, chatbot_router, dev_router
-from routers import runway_router, agent_studio_router
+from routers import runway_router, agent_studio_router, agent_router
+
+
+async def _seed_personas_bg():
+    """Seed the featured human persona agents (real users + embedded cards).
+    Runs in the background so startup is never blocked by model loading."""
+    try:
+        from services.personas import seed_personas
+        n = await seed_personas()
+        logging.getLogger("uvicorn").info("Seeded %d persona agents.", n)
+    except Exception as e:  # pragma: no cover - best-effort seeding
+        logging.getLogger("uvicorn").warning("Persona seeding skipped: %s", e)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await create_tables()
+    asyncio.create_task(_seed_personas_bg())
     yield
 
 
@@ -36,6 +50,7 @@ app.include_router(chatbot_router.router,      prefix="/api/chatbot",     tags=[
 app.include_router(dev_router.router,          prefix="/api/dev",         tags=["developer"])
 app.include_router(runway_router.router,       prefix="/api/runway",      tags=["runway"])
 app.include_router(agent_studio_router.router, prefix="/api",             tags=["studio"])
+app.include_router(agent_router.router,        prefix="/api",             tags=["agent"])
 
 
 @app.get("/api/health")

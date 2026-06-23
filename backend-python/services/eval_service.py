@@ -51,6 +51,7 @@ async def score_chunk(content: str, category: str) -> dict:
             temperature=0.1,
             max_tokens=120,
             return_usage=True,
+            mini=True,
         )
         raw = result["content"].strip()
         text = raw
@@ -114,6 +115,7 @@ async def score_simulation(chunks: list[dict], simulation_json: str) -> dict:
             temperature=0.1,
             max_tokens=200,
             return_usage=True,
+            mini=True,
         )
         raw  = result["content"].strip()
         text = raw
@@ -210,6 +212,7 @@ async def check_enhancement_hallucinations(
             temperature=0.1,
             max_tokens=150,
             return_usage=True,
+            mini=True,
         )
         raw  = result["content"].strip()
         text = raw

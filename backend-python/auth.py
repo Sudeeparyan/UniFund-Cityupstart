@@ -2,8 +2,8 @@ import os
 from datetime import datetime, timedelta
 from typing import Optional
 
+import bcrypt
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 
@@ -19,16 +19,23 @@ DEV_CREDENTIALS = [
     {"email": os.getenv("DEV_EMAIL_2", "team@unimind.dev"),   "password": os.getenv("DEV_PASS", "unimind-dev-2025")},
 ]
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
 
+# Use bcrypt directly. passlib 1.7.4's bcrypt backend self-test breaks on
+# bcrypt >= 4.1/5.x ("password cannot be longer than 72 bytes"); going direct is
+# robust across versions and still verifies existing passlib-made $2b$ hashes.
+# bcrypt only uses the first 72 bytes, so we truncate to avoid the 5.x ValueError.
 def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
+    pw = password.encode("utf-8")[:72]
+    return bcrypt.hashpw(pw, bcrypt.gensalt()).decode("utf-8")
 
 
 def verify_password(plain: str, hashed: str) -> bool:
-    return pwd_context.verify(plain, hashed)
+    try:
+        return bcrypt.checkpw(plain.encode("utf-8")[:72], hashed.encode("utf-8"))
+    except Exception:
+        return False
 
 
 def create_access_token(user_id: str, name: str) -> str:

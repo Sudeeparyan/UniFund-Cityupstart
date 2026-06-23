@@ -1556,7 +1556,7 @@ function RunRow({ run, type, index }) {
         </span>
 
         {/* Expand toggle */}
-        <span style={{ fontSize: 11, color: open ? T.blue : T.muted, transition: 'color 0.15s',
+        <span style={{ fontSize: 11, color: open ? T.blue : T.muted,
           transform: open ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s, color 0.15s',
           display: 'inline-block' }}>›</span>
 

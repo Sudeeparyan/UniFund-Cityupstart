@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Query
 
 from services.agent_seed import AGENTS
+from services.personas import featured_leaderboard, is_persona_placeholder
 
 router = APIRouter()
 
@@ -34,16 +35,16 @@ async def get_network_growth(timeframe: str = Query("this")):
 
 @router.get("/leaderboard")
 async def get_leaderboard():
-    top = sorted(AGENTS, key=lambda a: a["score"], reverse=True)[:12]
-    return [
-        {
-            "rank": i + 1,
-            "idx": a["idx"],
-            "name": a["name"],
-            "full_name": a["full_name"],
-            "icon": a["icon"],
-            "score": a["score"],
-            "type": a["type"],
-        }
-        for i, a in enumerate(top)
+    # Featured human personas (real, seeded agents) + procedural ambient agents,
+    # merged and ranked by score. Personas naturally top the board.
+    procedural = [
+        {"idx": a["idx"], "name": a["name"], "full_name": a["full_name"],
+         "icon": a["icon"], "score": a["score"], "type": a["type"],
+         "title": None, "featured": False}
+        for a in AGENTS
+        # Drop hollow placeholders that our real personas now replace.
+        if not is_persona_placeholder(a.get("full_name", ""))
     ]
+    combined = featured_leaderboard() + procedural
+    combined.sort(key=lambda a: a["score"], reverse=True)
+    return [{"rank": i + 1, **a} for i, a in enumerate(combined[:12])]

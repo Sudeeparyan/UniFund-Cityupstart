@@ -75,80 +75,81 @@ Frontend: http://localhost:5173
 
 ---
 
-## Current State of the Project (as of 2026-05-26)
+## Current State of the Project (as of 2026-06-21)
+
+> Product is mid-rebrand **UniMind → UniFund**; both names appear in code. The full, line-by-line reference lives in `docs/` (api-reference, architecture, backend, frontend, setup) — refreshed 2026-06-21 to match the code. This section is the quick map.
 
 ### What Is Built and Working
 
 #### Frontend Pages (in `frontend-react/src/pages/`)
 | Page | Status | Description |
 |---|---|---|
-| `LoginPage.jsx` | ✅ Complete | Email/password login, stores JWT to localStorage — **currently bypassed** |
-| `SignupPage.jsx` | ✅ Complete | Name/email/password signup — **currently bypassed** |
-| `ChatbotPage.jsx` | ✅ Complete | AI knowledge interview. File upload (PDF/DOCX/TXT/image). Content Enhancer (✦). Per-message delete. Clear history. XP gamification. |
-| `OnboardingPage.jsx` | ✅ Complete | Chat-style adaptive questionnaire + 3D particle morphing. Q2 adapts based on Q1 answer. Passes `answers` to App. |
-| `AgenticWebPage.jsx` | ✅ Complete | 3D network visualization of 1,401 agents. Simulation fires concurrently with animation. Navigation to Timeline, Community, Runway, Chatbot. |
-| `TimelinePage.jsx` | ✅ Complete | 3 LLM-generated life path cards. ContextQualityBanner (signal strength). ChatbotCTA. "Enrich Agent" button returns to chatbot then agentic. |
-| `CommunityPage.jsx` | ✅ Complete | Full rewrite. AnimatedNumber, real ProfileCard (score + badges from API), FeaturedStoriesBar, SortSelector (Hot/New/Top/Rising), TrendingSection (API), SuggestedConnections. |
-| `RunwayPage.jsx` | ✅ Complete | Developer financial runway tracker (client-side). Income sources, expense categories, monthly chart, AI insights, dev deals. |
+| `OnboardingPage.jsx` | ✅ Routed | Chat-style adaptive questionnaire + 3D particle morphing. Responsive (stacks below `lg`). Passes `answers` to App. |
+| `AgenticWebPage.jsx` | ✅ Routed ("Web" tab) | 3D network of 1,401 agents. Simulation fires concurrently with animation. Slide-in Simulator panel + demo query. "Developer" button. |
+| `TimelinePage.jsx` | ✅ Routed | 3 LLM life-path cards (milestones are `{month,event}` objects). ContextQualityBanner. ChatbotCTA. |
+| `CommunityPage.jsx` | ✅ Routed | Agentic redesign: A2A badges, post-type filters, SortSelector, real ProfileCard/badges, A2AProtocolFeed (client-side). |
+| `RunwayPage.jsx` | ✅ Routed | Finance tracker. Mostly local state, but AI savings plan + per-transaction tips call the backend. |
+| `AgentStudioPage.jsx` | ✅ Routed ("Agent" tab) | MCP-tool-driven level system (BABY→MAX), chat, résumé pipeline (`/api/studio/run`), right-side Space Arena simulation. **Replaced ChatbotPage as the Agent tab.** |
+| `DeveloperLoginPage.jsx` | ✅ Routed (`/developer`) | Terminal-style dev login → `unifund_dev_token`. |
+| `DeveloperPage.jsx` | ✅ Routed | Multi-tab control plane on `/api/dev/*`: LLM health, funnel, users, sim/community health, feature flags, broadcast, 3 eval pipelines. |
+| _Unused_ | — | `ChatbotPage`, `SplashPage`, `LoginPage`, `SignupPage`, `SignInPage`, `DeveloperSignUpPage` — present but not routed in `App.jsx`. |
+
+Shared: `components/SpaceArena.jsx` + `components/VoxelCharacter.jsx`; local demo data in `data/knowledgeBase.js`.
 
 #### App Routing (`frontend-react/src/App.jsx`)
-Page state machine: `'onboarding'` → `'transitioning'` → `'agentic'` → `'timeline'` | `'community'` | `'runway'` | `'chatbot'`
+Page values: `'onboarding'` → `'transitioning'` → `'web'` | `'timeline'` | `'developer'`, plus bottom-nav tabs `'runway'` | `'chatbot'`(=AgentStudio) | `'community'`. `/developer` URL starts at `'developer-login'`.
 
-- **Auth bypassed** — app starts directly at `'onboarding'`. Login/signup pages exist but are commented out.
-- All pages except Login/Signup use `React.lazy()` + `<Suspense>` for code splitting
-- `simulationData` + `simulationKnowledgeCount` flow from AgenticWebPage → TimelinePage
-- `chatbotCompleteTarget` controls where chatbot returns (`'onboarding'` for new users, `'agentic'` for returning)
-- `handleEnter(answers)` non-blockingly saves onboarding answers, then runs cinematic transition
+- **Guest-first auth** — on mount the app silently calls `/api/auth/guest` and stores `unifund_token`; no login screen. `api.js` mints a fresh guest token and retries once on any 401.
+- Persistent **bottom nav** (Runway · Web · Agent · Community) shown on the 4 main tabs.
+- All pages lazy-loaded except `DeveloperLoginPage`.
+- `simulationData` + `simulationKnowledgeCount` flow AgenticWebPage → App → TimelinePage (AgenticWebPage unwraps `res.simulation`).
 
 #### API Layer (`frontend-react/src/lib/api.js`)
-Single file for all fetch calls. Reads JWT from `localStorage` key `unimind_token`. Base URL: `http://localhost:8000`.
+Single boundary for all calls. User token `localStorage.unifund_token` (auto guest-refresh on 401); dev token `localStorage.unifund_dev_token` via separate `devRequest()`. Base URL `http://localhost:8000`.
 
-#### Backend Endpoints
-All endpoints live in `backend-python/routers/`. See `docs/api-reference.md` for full details.
+#### Backend Endpoints (11 router groups)
+All in `backend-python/routers/`. Full detail in `docs/api-reference.md`.
 
-| Endpoint | Status |
+| Group | Routes |
 |---|---|
-| POST /api/auth/signup | ✅ |
-| POST /api/auth/login | ✅ |
-| GET /api/users/me | ✅ (includes posts_count) |
-| POST /api/users/me/onboarding | ✅ |
-| GET /api/agents | ✅ |
-| GET /api/agents/search?q= | ✅ |
-| POST /api/simulate | ✅ (structured JSON: 3 paths + collective_insight) |
-| GET /api/posts | ✅ |
-| GET /api/posts/trending | ✅ |
-| POST /api/posts | ✅ |
-| POST /api/posts/{id}/react | ✅ |
-| GET /api/leaderboard | ✅ |
-| GET /api/network/growth | ✅ |
-| GET /api/achievements/{user_id} | ✅ |
-| POST /api/chatbot/message | ✅ (Azure OpenAI, returns message id) |
-| GET /api/chatbot/history | ✅ (returns ids) |
-| DELETE /api/chatbot/history | ✅ (clear all, re-seeds opening) |
-| DELETE /api/chatbot/history/{id} | ✅ (delete one, ownership check) |
-| POST /api/chatbot/enhance | ✅ (AI expands brief input with context) |
-| POST /api/chatbot/upload | ✅ (PDF/DOCX/image/txt extraction) |
-| POST /api/chatbot/knowledge | ✅ |
+| auth | `POST /api/auth/{signup,login,guest}` |
+| users | `GET /api/users/me` (incl. `posts_count`, `chunks_saved`), `POST /api/users/me/onboarding` |
+| agents | `GET /api/agents`, `GET /api/agents/search` (name **or** full_name) |
+| posts | `GET /api/posts`, `GET /api/posts/trending`, `POST /api/posts`, `POST /api/posts/{id}/react` |
+| simulate | `POST /api/simulate` → `{simulation, knowledge_count}` (3 paths, `{month,event}` milestones; fallback template) |
+| network | `GET /api/network/growth`, `GET /api/leaderboard` |
+| achievements | `GET /api/achievements/{user_id}` |
+| chatbot | `message`, `GET history`, `GET chunks`, `DELETE history` (→`{deleted:true}`, no re-seed), `DELETE history/{id}`, `enhance` (→`flagged`+`hallucinations`), `upload` (→`file_type`+`file_name`), `knowledge` |
+| runway | `profile`, `income`, `categories`, `transactions`, `accounts`, `charts` (CRUD) + AI `simulate`, `tip` |
+| studio | `POST /api/studio/run` (ARIA→SCOUT→NEXUS→LENS→RESUME résumé pipeline) |
+| dev | `POST /api/dev/auth` + ~30 dev-token endpoints (telemetry, funnel, users, flags, broadcast, 3 eval pipelines) |
 
 #### Backend Services
-- `services/agent_seed.py` — Python port of frontend's `xorshift32` RNG. Builds 1,401 agents at startup in memory. **Validated: ARIA=9842, NOX=9120, VEDA=8633.**
-- `services/azure_openai.py` — `AsyncAzureOpenAI` wrapper. Two functions: `chat_complete()` and `simulate_life()`.
-- `services/chatbot_service.py` — System prompt builder, knowledge extraction, agent bio rebuild. Also: `enhance_content()` and `extract_text_from_file()` (PDF/DOCX/image/text).
+- `services/agent_seed.py` — `xorshift32` port → 1,401 agents in memory. **Validated: ARIA=9842, NOX=9120, VEDA=8633.**
+- `services/azure_openai.py` — `AsyncAzureOpenAI` singleton. `chat_complete(messages, temperature=0.8, max_tokens=800, return_usage=False)` (**note: `temperature` is NOT forwarded to the Azure call**) and `simulate_life(user_profile, onboarding)`.
+- `services/chatbot_service.py` — prompts, `extract_knowledge`, `build_agent_bio`, `enhance_content`, `extract_text_from_file` (returns `(text, file_type)`).
+- `services/eval_service.py` — **3 LLM quality pipelines** (background tasks): chunk quality → `knowledge_chunks.eval_*`; simulation personalisation/groundedness → `simulation_evals`; enhancement hallucination guard → `enhance_logs`.
 
-#### Database (SQLite — `backend-python/unimind.db`)
-Tables: `users`, `knowledge_chunks`, `chat_messages`, `posts`, `reactions`, `achievements`
+#### Database (SQLite — default `unimind.db`; `.env.example` uses `unifund.db`)
+**17 tables**, created on startup with idempotent `ALTER TABLE` migrations:
+- Core: `users` (+`suspended`,`last_active`), `knowledge_chunks` (+`eval_*`), `chat_messages`, `posts`, `reactions`, `achievements`
+- Telemetry/control: `llm_logs`, `simulation_logs`, `feature_flags`, `broadcast_messages`
+- Eval: `simulation_evals`, `enhance_logs`
+- Runway: `runway_profile`, `runway_income_sources`, `runway_categories`, `runway_transactions`, `runway_bank_accounts`, `runway_chart_data`
 
-Seeded with 10 community posts matching the frontend's original `INITIAL_POSTS` array exactly.
+Seeded (`run_seed.py`) with 10 community posts + demo user **Ramya** (`ramya@unimind.dev` / `ramya2025`) and full Runway data.
 
-### What Is NOT Yet Built
+### What Is NOT Yet Built / Known Gaps
 
-| Feature | Notes |
+| Feature / gap | Notes |
 |---|---|
-| Live activity WebSocket | `CommunityPage` live feed is still hardcoded (updates every 4s client-side) |
-| Node journey view | Clicking a node shows tooltip. Full journey view (described in `idea.md`) not built |
-| 3D timeline (Simulation Studio) | Month-by-month cinematic view described in `idea.md` is not built |
-| Real agent profiles in 3D network | Network still uses procedural data. Real user agents not injected into the Three.js scene |
-| LLM-driven onboarding | Onboarding uses adaptive question tree (Q2 adapts to Q1) but does NOT call an LLM per question — that requires a new `/api/onboarding/chat` endpoint |
+| Per-user data isolation | App runs on a single shared **guest** account; real (non-guest) auth pages exist but aren't routed |
+| Live activity WebSocket | `CommunityPage` live feed + A2A ticker are client-side only |
+| Node journey view | Clicking a node shows a tooltip; full journey view (`idea.md`) not built |
+| 3D timeline (Simulation Studio) | Card-based TimelinePage instead of the month-by-month cinematic view |
+| Real agent profiles in 3D network | Still procedural seed data; real user agents not injected |
+| LLM-driven onboarding | Adaptive question tree, but no LLM per question (`/api/onboarding/chat` not built) |
+| `suspended` not enforced | Flag stored but no route rejects suspended users; no indexes / log-retention policy |
 
 ---
 
@@ -158,10 +159,21 @@ Credentials live in `backend-python/.env` (NOT committed to git):
 ```
 AZURE_ENDPOINT=https://laya.cognitiveservices.azure.com/
 AZURE_API_VERSION=2024-12-01-preview
-DEPLOYMENT_NAME=gpt-5-chat
+DEPLOYMENT_NAME=gpt-5-chat          # BIG model (final synthesis)
+# ── AI Engine v2 (all optional; app runs without them) ──
+MINI_DEPLOYMENT=gpt-5-mini          # cheap tier for routing/extraction/eval/drafts; defaults to BIG if unset
+EMBED_BACKEND=auto                  # auto | st | hash  (free local embeddings)
+EMBED_MODEL=all-MiniLM-L6-v2        # sentence-transformers model when backend=st/auto
+LLM_SUPPORTS_TEMPERATURE=1          # set 0 if the deployment 400s on a custom temperature
 ```
 
 The `OPENAI_API_KEY` is in `.env`. Never log it or commit it.
+
+> **AI Engine v2 (2026-06-22):** model tiering + free local embeddings + a real
+> 10-expert agent council + Graph-RAG + caching. Full detail in
+> `docs/ai-architecture.md`. To unlock cost savings in production, set
+> `MINI_DEPLOYMENT` to a cheap deployment and keep `sentence-transformers`
+> installed (falls back to a deterministic hash-embedding otherwise).
 
 ---
 
@@ -175,7 +187,17 @@ The `OPENAI_API_KEY` is in `.env`. Never log it or commit it.
 | `backend-python/db.py` | SQLite schema + `get_db()` dependency. |
 | `backend-python/auth.py` | JWT + bcrypt. `get_current_user` dependency. |
 | `backend-python/services/agent_seed.py` | CRITICAL: xorshift32 RNG. Do not modify without validating against frontend JS output. |
-| `backend-python/services/azure_openai.py` | Azure OpenAI client. |
+| `backend-python/services/azure_openai.py` | Azure OpenAI client. `chat_complete(model=, mini=)` tiered; temperature now forwarded (auto-disables if rejected); `simulate_life(..., peer_context=)`. |
+| `backend-python/services/embeddings.py` | **AI v2** — free local embeddings (sentence-transformers → hash fallback) + cosine/top_k. |
+| `backend-python/services/expert_agents.py` | **AI v2** — 13 routable specialist personas (+ ARIA) + 4 SPECIAL_AGENTS (SENTINEL/ECHO/ADVOCATE/SKEPTIC). Add an expert here. |
+| `backend-python/services/personas.py` | **AI v2** — 6 featured human persona agents (Sudeep/Ramya/Saju/Vinay/Masthan/Geethika); `seed_personas()` makes them real users + embedded cards. |
+| `backend-python/services/student_seed.py` | **AI v2** — synthetic survey generator (`generate_students(n)`) + `seed_students()` (batched, free embeddings). Powers 485 real student agents. |
+| `backend-python/seed_data/generate_students.py` | Script: writes `seed_data/student_agents.json` (proof) + seeds. `python seed_data/generate_students.py [N] [--no-seed]`. |
+| `backend-python/services/orchestrator.py` | **AI v2** — `route_experts`, `run_council`, `route_peers`, `graph_rag_context`, `rebuild_agent_card`. |
+| `backend-python/services/llm_cache.py` | **AI v2** — exact-match response cache (€0 repeats); invalidated on chunk change. |
+| `backend-python/services/eval_service.py` | 3 background LLM quality pipelines (chunk / simulation / enhance) — now on the mini tier. |
+| `backend-python/routers/agent_router.py` | **AI v2** — `POST /api/agent/council`, `GET /api/agent/experts`. |
+| `backend-python/routers/dev_router.py` | Developer control plane (`/api/dev/*`); guarded by `get_dev_user`. |
 | `backend-python/.env` | Secrets. Never commit. |
 
 ---
@@ -577,3 +599,91 @@ Override via `DEV_EMAIL_1`, `DEV_EMAIL_2`, `DEV_PASS` env vars.
 **Bug caught during browser verification (and fixed):** the fullscreen overlay initially showed two overlapping close buttons — the overlay's own header `✕` *and* the arena panel's internal header `✕` (left over from when `ArenaHeader` always rendered a close button while `fullscreen`). Fixed by making `ArenaHeader` only ever render the expand (⤢) button, never a close button — the overlay's own header + Esc key are the only close affordance now. Removed the now-unused `onClose` prop from `SpaceArena`/`ArenaHeader`.
 
 **Verification:** `npx vite build --emptyOutDir false` → 2074 modules, 0 errors. No `chromium-cli` or local Playwright install in this repo, but a cached Playwright (from a prior `npx playwright` run, browsers already present under `%LOCALAPPDATA%\ms-playwright`) was invoked directly via its absolute cache path in a throwaway Node script — drove the real flow end-to-end: onboarding (Student → Build something technical → Self-doubt, "Bring it to life" → "Enter UniFund →") → bottom-nav "Agent" tab → Agent Studio → typed a chat message → screenshotted mid-animation (confirmed a crew sprite walking in, speech bubble, ticker all rendering correctly at the small 288×320 sidebar size with zero clipping) → clicked ⤢ → screenshotted fullscreen (caught the duplicate-✕ bug here) → Escape → confirmed the overlay actually unmounts. `console --errors` showed only expected backend-offline noise (guest-login CORS/401 — no backend was running) and pre-existing WebGL driver warnings; no React warnings or errors from the new components. Temp verification script/screenshots deleted after use; not committed.
+
+### 2026-06-21 — Documentation sync pass (docs only, no code touched)
+
+**Why:** The `docs/` reference set had drifted badly behind the code and was actively misleading anyone (human or AI) reading it. The docs described an ~8-router / 6-table May-2026 backend with bypassed/commented-out auth; the actual code has 11 router groups, 17 tables, guest-first auth, three LLM eval pipelines, a Runway backend, an Agent Studio pipeline, and a full Developer control plane. User explicitly asked to update the docs and **not** touch code.
+
+**Files updated (all in `docs/`):**
+- **`api-reference.md`** — full rewrite. Added: dual token model (user `unifund_token` / dev `unifund_dev_token`), CORS-regex note, `/api/auth/guest`, `/api/chatbot/chunks`, corrected `DELETE /history` (now `{deleted:true}`, no opening re-seed), `enhance` (`flagged`+`hallucinations`), `upload` (`file_type`+`file_name`), `users/me` (`chunks_saved`), **new** `/api/simulate` shape `{simulation, knowledge_count}` with `{month,event}` milestone objects, plus full Runway, Agent Studio, and ~30-endpoint Developer sections.
+- **`architecture.md`** — full rewrite: new folder tree (components/, data/, new pages), bottom-nav routing + `/developer`, guest-auth flow, 17-table list, the 3 eval pipelines, CORS regex, gpt-5-chat usage map.
+- **`backend.md`** — comprehensive rewrite covering all 11 routers, all 17 tables + migrations, dev auth, `eval_service` (3 pipelines), runway/dev/agent-studio routers, and the `chat_complete()` gotcha (temperature param is accepted but **not** forwarded to Azure; default `max_tokens=800`).
+- **`frontend.md`** — rewrite: `unifund_token`, guest bootstrap + 401 auto-refresh, full api.js function inventory, bottom-nav App routing, Agent Studio (the "Agent" tab) + Developer plane page docs, `SpaceArena`/`VoxelCharacter` components, `knowledgeBase.js`, Runway-now-API note, dead-files list. Corrected the TimelinePage data shape (`AgenticWebPage` unwraps `res.simulation`, so the page reads `data.paths`, not `data.simulation.paths`).
+- **`setup.md`** — guest-first flow, dev-plane login + credentials, Ramya demo account, `DB_PATH` unimind.db-vs-unifund.db caveat, "runs without Azure key (fallbacks)" note.
+- **`improvements.md`** — refreshed stale rows (auth, runway, A2A, agent search) + added a "Newly built since May 2026" section (Agent Studio, Developer plane, eval pipelines, Runway backend, guest auth, telemetry).
+
+**Also refreshed:** the CLAUDE.md "Current State of the Project" section above (frontend pages, App routing, the 11-group endpoint map, services incl. `eval_service`, the 17-table list, and the gaps table) + the Key Files table — all brought in line with the code in the same pass.
+
+**Left intentionally unchanged:** `idea.md` and the V1/V2/V3 + PPT files (historical vision / pitch material, not code references). **Note:** `docs/erd.md` and `docs/session-brief-2026-05-31.md` referenced elsewhere in this file do not exist in `docs/`.
+
+**Verification:** docs cross-checked line-by-line against the actual source (`main.py`, `db.py`, `auth.py`, every router/model/service, `api.js`, `App.jsx`, seed files). No code or build changed.
+
+### 2026-06-22 — AI Engine v2: model tiering + free retrieval + real expert-agent council + Graph-RAG + caching
+
+**Why:** User asked to redesign the AI architecture to be *fast, more accurate, and cheap*, with *more expert agents that are real* (not theatre). The old engine used the single big `gpt-5-chat` for everything, forwarded no `temperature`, had no embeddings/retrieval/caching, and the "agents" (ARIA/SCOUT/…) were a hardcoded `_build_agent_logs()` script. This session implements **Phase 0 + the headline P1/P2/P4 pieces** of `docs/make-it-real-plan.md`. Full design in **`docs/ai-architecture.md`**.
+
+**New backend services:**
+- **`services/embeddings.py`** — free local embeddings: `sentence-transformers` (`all-MiniLM-L6-v2`, 384-dim, verified working on Python 3.14 / torch 2.10 CPU) with a deterministic **hash-embedding fallback** (always runs offline, €0). `embed`/`embed_batch` (async, off-loop), `cosine`, `top_k`, `to_blob`/`from_blob`, `backend_name()` (every stored vector is tagged so backends are never mixed).
+- **`services/expert_agents.py`** — a real roster of **10 specialist personas** (SCOUT, LENS, VEDA, NOX, ABACUS, FORGE, RESUME, NEXUS, ORION, LUME) + ARIA orchestrator. Each has a domain (for embedding routing), keywords (routing boost), and system prompt. Add an expert = append one dict.
+- **`services/orchestrator.py`** — `route_experts(query,k)` (free), `run_council(...)` (route → run k experts **in parallel on the MINI tier** → **one** BIG synthesis; returns `answer/confidence/experts[]/agent_logs[]` in the existing SpaceArena shape), `route_peers(...)`, `graph_rag_context(...)` (free peer-outcome retrieval), background `embed_and_store_chunk` + `rebuild_agent_card`.
+- **`services/llm_cache.py`** — exact-match response cache (€0 repeats), invalidated when a user's chunks change.
+
+**Modified:**
+- **`services/azure_openai.py`** — `chat_complete(..., model=, mini=)` tiering via `MINI_DEPLOYMENT` (defaults to BIG if unset). **Fixed the temperature bug**: it is now actually forwarded, with an auto-fallback that disables it process-wide if a deployment 400s on it. `simulate_life(..., peer_context=)` for Graph-RAG grounding.
+- **`db.py`** — 4 new tables (`chunk_embeddings`, `agent_cards`, `agent_messages`, `response_cache`) + indexes on `response_cache`, `chunk_embeddings`, `llm_logs`, `knowledge_chunks`. **17 → 21 tables.**
+- **`routers/simulate_router.py`** — Graph-RAG peer grounding + exact-match cache; response gained a `grounding` block (`peers`, `peer_chunks`, `grounded`).
+- **`routers/agent_studio_router.py`** — JD-analysis + match steps moved to MINI (résumé build stays BIG); real `route_peers()` retrieval feeds the agent logs; returns `peers_consulted`.
+- **`routers/chatbot_router.py`** — extraction on MINI; background chunk-embed + agent-card rebuild on every chunk save (chat + `/knowledge`); cache invalidation.
+- **`services/eval_service.py`** — all 3 eval pipelines moved to MINI.
+- **`routers/agent_router.py` (new)** + registered in `main.py`: `POST /api/agent/council`, `GET /api/agent/experts`. **api.js** gained `runAgentCouncil(query,k)` + `getExperts()`. **requirements.txt** gained `numpy` + (optional) `sentence-transformers`.
+
+**Tiering recap:** retrieval = €0 (local); routing/extraction/eval/per-expert drafts = MINI; final synthesis = BIG (cached). Set `MINI_DEPLOYMENT` to a cheap deployment in prod to realise the savings; without it the mini tier transparently uses BIG (correct, not cheaper).
+
+**Verification (backend):** `from main import app` loads all routers (72 routes). Smoke test (hash backend): embeddings + `route_experts` route sensibly ("job+fear"→LENS/VEDA/SCOUT; "money+build"→ABACUS/FORGE/LENS); cache keys deterministic; roster=10. Real ST backend confirmed: cos(ml,dl)=0.423 vs cos(ml,money)=0.094. TestClient: `/api/health`=200, `/api/agent/experts`=200 (10 experts), `/api/agent/council` correctly 401s without a token. **Not yet run with live Azure calls** (needs the real key) and **frontend not yet wired to the new council endpoint** — `api.js` bindings exist; surfacing `runAgentCouncil` in AgentStudioPage's chat is the recommended next step. Per-user isolation (P0 auth routing) still pending — agent cards are keyed by `user_id`, so it activates once real auth is routed.
+
+> **Env note:** the VSCode-selected Python interpreter differs from the Anaconda Python the backend runs on (where numpy/torch/sentence-transformers are installed and passed tests). Run the backend with that Anaconda interpreter; IDE "package not installed" hints on `requirements.txt` are from the other interpreter and are harmless.
+
+### 2026-06-23 — More expert agents + real human personas (council expansion + functional leaderboard people)
+
+**Why:** User asked to "implement it and build personas for them" alongside the 6 leaderboard names (Sudeep·Founder 14280, Ramya·AI Explorer 12500, Saju·Builder 11800, Vinay·Student 11200, Masthan·Student 10600, Geethika·Rising Star 10100). Those 6 were **hollow placeholders already in `agent_seed`** (truncated codenames `SUDEEP/RAMYA/SAJU/VINAY/MASTH/GEETH` with those exact scores) — no profile, no knowledge, not matchable. This session (a) expands the council and (b) turns those 6 into **real, network-functional agents**.
+
+**Council expansion (`services/expert_agents.py`):**
+- Added 3 routable experts → **13 total**: **ATLAS** (relocation/visa), **QUANT** (calibrated forecaster), **CATALYST** (accountability/momentum).
+- Added `SPECIAL_AGENTS` (not in normal routing, power dedicated flows): **SENTINEL** (fact-check guardrail), **ECHO** (future-self), **ADVOCATE**+**SKEPTIC** (debate pair). `special_roster()` added; `AGENTS_BY_ID` now includes them.
+
+**Real personas (`services/personas.py`, NEW):**
+- 6 rich personas (bio, focus/goal/fear, skills, 4-6 knowledge chunks each — Sudeep uses his real MSc-AI/Vially/Soliton/IEEE profile).
+- `seed_personas()` — **idempotent, offline, €0** (no LLM): upserts each as a real `users` row + `knowledge_chunks` + `chunk_embeddings` + an `agent_cards` row (summary = bio, card vector = local embedding). Verified: 6 users, 26 chunks, 26 embeddings, 6 cards; re-seed does not duplicate.
+- Auto-seeded on startup via a **background task** in `main.py` lifespan (never blocks boot); also runnable standalone via `seed_data/seed_personas.py`.
+
+**Wiring:**
+- `routers/network_router.py` — `/api/leaderboard` now merges featured personas + procedural agents, ranks by score, and **dedupes** the old placeholders (`is_persona_placeholder()`). Verified order: the 6 personas top the board, then ARIA/NOX…
+- `routers/agent_router.py` — new `GET /api/agent/network` (featured personas), `GET /api/agent/mentors` (**MENTOR-MATCH** via `orchestrator.match_mentors` → `route_peers`), `POST /api/agent/debate` (ADVOCATE vs SKEPTIC → ARIA judge). `GET /api/agent/experts` now also returns `special`.
+- `services/orchestrator.py` — added `run_debate()` and `match_mentors()`; retrieval thresholds are now **backend-aware** (`emb.retrieval_threshold()`: 0.05 hash / 0.22 ST) so matching works on both embedding backends.
+- `services/embeddings.py` — added `retrieval_threshold()`.
+- `api.js` — added `runAgentDebate`, `getMentors`, `getFeaturedNetwork`.
+
+**Verification (hash backend = worst case):** mentor-match is semantically correct — a SWE-intern profile → **Vinay** top; a founder/builder profile → **Saju** then **Sudeep Aryan**. With real ST embeddings the scores sharpen. Leaderboard deduped (12 rows, personas 1-6). `/api/agent/experts` = 13 experts + 4 special. Endpoints auth-guarded (401 without token). **Not yet run with live Azure** (debate/council synthesis need the key) and **frontend not yet surfacing mentors/debate/council** — `api.js` bindings exist; wiring them into AgentStudio/Community is the next step.
+
+### 2026-06-23 — 485 synthetic student agents (real, embedded, functional)
+
+**Why:** User submitted a 9-question student survey form and asked to create **485 student agents** (mostly international — Indian/Chinese/etc.) from synthetic answers, "create agent and improve it … instead of static, I need proof in JSON." Goal: make the network's "thousands of students" claim real, not procedural decoration.
+
+**Built:**
+- **`services/student_seed.py`** — `generate_students(n=485, seed=4825)` (deterministic): weighted international name pools (India 36% / China 22% / Vietnam / Nigeria / Pakistan / Korea / Bangladesh / Iran / Brazil / Ireland), all 9 survey questions with realistic weighted distributions, and `_survey_to_agent()` that derives focus/goal/fear/bio/skills + 6 knowledge chunks + an engagement score from each answer set. `seed_students()` inserts them as real `users` + `knowledge_chunks` + `chunk_embeddings` + `agent_cards`, **batching all embeddings in one model pass** (free, no LLM), idempotent.
+- **`seed_data/generate_students.py`** — writes **`seed_data/student_agents.json`** (the JSON proof: 485 records, each with raw `survey` answers + derived `agent`) and seeds. `python seed_data/generate_students.py [N] [--no-seed]`.
+- **`/api/agent/population`** (new, in `agent_router.py`) — live dynamic counts (real_student_agents / featured_personas / ambient_test_agents / total / embedded_agent_cards / knowledge_embeddings). Proof the network is real, not static.
+
+**Seeded into the real `./unimind.db`** with sentence-transformers embeddings — verified: **485 student agents + 6 personas = 491 agent cards, 2,936 chunk embeddings (backend `st:all-MiniLM-L6-v2`)**. Distributions confirmed (India 182 / China 102 / Vietnam 39 …; Undergrad 249 / Postgrad 159 / Recent-grad 62). ST mentor-match for an AI/ML student profile returns relevant peers at 69-71% (Bo Guo / Rohan Kapoor / Diya Gupta …). Graph-RAG now grounds simulations on the real student-outcome corpus. Test rows cleaned afterward.
+
+**Note:** the procedural 1,401 `agent_seed` agents remain as the **ambient/"test" population**; the 485 students + 6 personas are the real, matchable agents. Bump `N` in the script for more. **Frontend not yet calling `/api/agent/population`** (leaderboard still merges personas + procedural; students are functional via matching/Graph-RAG but not yet shown as a list in the UI).
+
+### 2026-06-23 — Full end-to-end test pass + 2 critical fixes
+
+**Why:** User asked to run the whole app end to end and resolve all issues. Ran a 29-endpoint suite via TestClient against the real `unimind.db` (real handlers + real DB + **live Azure** calls), booted the real uvicorn server, and built the frontend.
+
+**Bugs found & fixed:**
+1. **CRITICAL — auth was completely broken.** Installed `bcrypt` is **5.0.0**, but `passlib==1.7.4`'s bcrypt backend runs a self-test that hashes a >72-byte probe string; bcrypt 5.x raises `ValueError: password cannot be longer than 72 bytes`, so `hash_password()` threw and **`/api/auth/guest` returned 500 — the entire app couldn't authenticate.** Fix: `auth.py` now uses **`bcrypt` directly** (truncating to 72 bytes), dropping passlib. It still verifies existing passlib-made `$2b$` hashes, so seeded/real users keep working. Removed `passlib` from `requirements.txt`; relaxed `bcrypt>=4.0.1`. (Aside: the persona/student seeders had a `try/except` around `hash_password`, so they'd silently stored `password_hash="x"` — harmless, those rows never log in.)
+2. **`orchestrator.run_council` `KeyError: 'expert'`** — the confidence calc iterated the `experts` list (which has `route_score` at top level) but accessed `r["expert"]["route_score"]` (that nesting only exists on the `results` list). Fixed to `e["route_score"]`.
+
+**Final E2E result: 29/29 endpoints pass.** Live Azure flows all work: chatbot reply, enhance (hallucination guard fired `flagged=True`), **simulate grounded on 8 real peer chunks** (`grounding.grounded=True`), studio résumé (`peers_consulted=3`, 9 logs), **council** (routes SCOUT/VEDA/ORION, confidence 71, real fused answer), debate (5 logs). Real uvicorn server boots clean and serves live HTTP (`/api/auth/guest`, `/api/agent/population`, `/api/leaderboard`, `/api/agent/experts` all 200). **Frontend `npx vite build` → 0 errors** (only the pre-existing three.js >500 kB chunk-size warning). `/api/agent/population` live: 485 students + 6 personas + 1407 ambient = 1898 agents, 491 cards, 2936 embeddings.

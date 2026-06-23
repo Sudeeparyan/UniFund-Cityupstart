@@ -1,8 +1,8 @@
 fastapi==0.111.0
 uvicorn[standard]==0.29.0
 python-jose[cryptography]==3.3.0
-passlib[bcrypt]==1.7.4
-bcrypt==4.0.1
+# auth.py uses bcrypt directly (passlib 1.7.4's bcrypt backend breaks on bcrypt>=5).
+bcrypt>=4.0.1
 aiosqlite==0.20.0
 python-dotenv==1.0.0
 openai>=2.38.0
@@ -12,3 +12,9 @@ httpx>=0.28.1
 pypdf==4.3.1
 python-docx==1.1.2
 pillow>=12.2.0
+numpy>=1.26
+# Optional but recommended: free local embeddings for retrieval / expert routing
+# / Graph-RAG. The app runs WITHOUT this (it falls back to a deterministic
+# hash-embedding), but installing it gives much sharper semantic matching at €0
+# per call. Pulls torch (~CPU). Set EMBED_BACKEND=hash to force the fallback.
+sentence-transformers>=3.0.0

@@ -44,6 +44,7 @@ async def extract_knowledge(user_message: str) -> dict | None:
         raw = await chat_complete(
             [{"role": "user", "content": prompt}],
             temperature=0.2,
+            mini=True,
         )
         raw = raw.strip()
         if raw.startswith("```"):
@@ -83,7 +84,7 @@ async def build_agent_bio(name: str, chunks: list[dict]) -> str:
         f"Knowledge:\n{chunk_text}"
     )
     try:
-        return await chat_complete([{"role": "user", "content": prompt}], temperature=0.7)
+        return await chat_complete([{"role": "user", "content": prompt}], temperature=0.7, mini=True)
     except Exception:
         return f"{name} · Emerging agent in the UniMind knowledge web."
 
@@ -103,7 +104,7 @@ async def enhance_content(brief: str, user_name: str, chunks: list[dict]) -> str
         "Output ONLY the expanded message text, nothing else."
     )
     try:
-        return await chat_complete([{"role": "user", "content": prompt}], temperature=0.75, max_tokens=300)
+        return await chat_complete([{"role": "user", "content": prompt}], temperature=0.75, max_tokens=300, mini=True)
     except Exception:
         return brief
 

@@ -8,6 +8,7 @@ from db import get_db
 from auth import get_current_user
 from services.azure_openai import simulate_life
 from services.eval_service import score_simulation_background
+from services import orchestrator, llm_cache
 
 router = APIRouter()
 
@@ -82,7 +83,23 @@ async def run_simulation(
         "fear": current_user.get("fear") or "uncertainty",
     }
 
-    result_text, usage = await simulate_life(user_profile, onboarding)
+    # ── Exact-match cache: identical profile+knowledge → reuse (free) ──────────
+    cache_key = llm_cache.make_key(
+        "simulate", current_user["id"],
+        onboarding, knowledge, current_user.get("agent_bio") or "",
+    )
+    cached = await llm_cache.cache_get(db, cache_key)
+    if cached:
+        return cached
+
+    # ── Graph-RAG: retrieve real peer outcomes relevant to this person (free) ──
+    rag_query = (
+        f"{onboarding['focus']} {onboarding['goal']} {onboarding['fear']} {knowledge}"
+    )
+    rag = await orchestrator.graph_rag_context(db, rag_query, current_user["id"], k=8)
+    peer_context = rag["context_text"]
+
+    result_text, usage = await simulate_life(user_profile, onboarding, peer_context=peer_context)
 
     # Parse structured JSON from LLM; fall back to static template if malformed
     output_type = "llm"
@@ -136,4 +153,18 @@ async def run_simulation(
             chunks_for_eval, json.dumps(simulation),
         )
 
-    return {"simulation": simulation, "knowledge_count": len(rows)}
+    response = {
+        "simulation": simulation,
+        "knowledge_count": len(rows),
+        "grounding": {
+            "peers": rag["peer_count"],
+            "peer_chunks": rag["chunk_count"],
+            "grounded": rag["chunk_count"] > 0,
+        },
+    }
+    # Cache real outputs; invalidated automatically when the user's chunks change.
+    if output_type == "llm":
+        await llm_cache.cache_put(db, cache_key, "simulate", current_user["id"], response)
+        await db.commit()
+
+    return response

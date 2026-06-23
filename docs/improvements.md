@@ -1,6 +1,8 @@
-# UniMind — Gap Analysis (Updated May 2026)
+# UniMind / UniFund — Gap Analysis (Updated June 2026)
 
 This document tracks what the original `idea.md` vision describes versus what is actually built, and what remains to be done.
+
+> Since the May 2026 pass the platform also gained: **Agent Studio** (MCP-tool-driven agent levels + résumé pipeline), a full **Developer control plane**, three **LLM quality-eval pipelines**, a **guest-first auth** model, and a **backend-backed Runway** (AI savings plan + tips). See the "Newly built" section at the bottom.
 
 ---
 
@@ -48,7 +50,7 @@ This document tracks what the original `idea.md` vision describes versus what is
 | Leaderboard | ✅ API-backed, top 12 |
 | Filters (Expert / Community / New / You) | ✅ Built |
 | Click node → full journey view | Not built (tooltip only) |
-| Agents communicate and learn from each other | Not built (requires knowledge graph layer) |
+| Agents communicate and learn from each other | Partial — visual A2A only (Agent Studio "Space Arena" + Community A2A badges); no real knowledge-graph exchange |
 | Real user agents injected into 3D scene | Not built (still procedural seed data) |
 
 ---
@@ -77,7 +79,7 @@ This document tracks what the original `idea.md` vision describes versus what is
 | Real agent profiles in 3D scene | Real user agents injected into Three.js alongside procedural ones |
 | Agent-to-agent knowledge exchange | The knowledge graph layer — agents learn from each other |
 | LLM-driven onboarding | `/api/onboarding/chat` endpoint for truly dynamic questions |
-| Re-enable authentication | Login/Signup pages exist and are built — just uncomment in App.jsx |
+| Real (non-guest) auth in the UI | App is now guest-first (`/api/auth/guest`); the built Login/Signup pages exist but aren't routed in App.jsx. Wiring them in + per-user data isolation (guest is a single shared account) is the remaining work. |
 
 ### Medium Impact — Frontend Only
 
@@ -93,19 +95,33 @@ This document tracks what the original `idea.md` vision describes versus what is
 | Feature | Notes |
 |---|---|
 | Reply threads on posts | "reply ↗" is a placeholder |
-| Runway page backend sync | RunwayPage is entirely client-side |
-| Node search by bio content | Currently searches by name only |
+| Full Runway backend sync | AI savings plan + per-transaction tips now call the backend; the income/category/transaction/account CRUD endpoints exist and are seeded (Ramya) but the page UI still drives most state locally |
+| Node search by bio content | `/api/agents/search` now matches name **or** full_name; bio-content search still not built |
+
+---
+
+## Newly Built Since May 2026 (beyond the original idea.md scope)
+
+| Feature | Status |
+|---|---|
+| **Agent Studio** (the "Agent" tab) | ✅ MCP-tool-driven level system (BABY→MAX), résumé-tailoring pipeline (`/api/studio/run`), right-side "Space Arena" agent simulation |
+| **Developer control plane** (`/developer`) | ✅ Separate dev auth + ~30 `/api/dev/*` endpoints: LLM telemetry, onboarding funnel, user management, simulation/community health, feature flags, broadcast |
+| **LLM quality-eval pipelines** | ✅ 3 background evaluators — chunk quality, simulation personalisation/groundedness, enhancement hallucination guard — surfaced in the dev plane |
+| **Runway backend** | ✅ `runway_*` tables + CRUD + AI savings plan + per-transaction tips; demo user "Ramya" seeded |
+| **Guest-first auth** | ✅ `/api/auth/guest` + auto-token-refresh on 401 (replaced the bypassed-login model) |
+| **Telemetry on every LLM call** | ✅ `llm_logs` / `simulation_logs` record tokens, latency, fallback status |
 
 ---
 
 ## Summary
 
-The platform is **fully functional end-to-end** for the core loop:
+The platform is **fully functional end-to-end** for the core loop and several adjacent surfaces:
 - Onboarding (adaptive chat-style) ✅
-- Chatbot knowledge interview (with file upload + enhancer) ✅
+- Knowledge interview / Agent Studio (file upload + enhancer + level system + résumé pipeline) ✅
 - 3D network exploration ✅
 - LLM life simulation with 3 structured paths ✅
 - Community feed (real API) ✅
-- Developer runway tracker ✅
+- Runway finance tracker (AI plan + tips) ✅
+- Developer control plane + LLM quality evals ✅
 
-The biggest remaining gaps from the original vision are the **full node journey view** (clicking a node → their story) and **real agents in the 3D scene** (still procedural). The cinematic 3D timeline from idea.md has been functionally replaced by TimelinePage (card-based, but real LLM output).
+The biggest remaining gaps from the original vision are the **full node journey view** (clicking a node → their story), **real agents in the 3D scene** (still procedural), **true LLM-driven onboarding**, and **per-user data isolation** (the app currently runs on a shared guest account). The cinematic 3D timeline from idea.md remains functionally replaced by the card-based TimelinePage (real LLM output).

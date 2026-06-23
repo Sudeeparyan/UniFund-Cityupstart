@@ -1021,6 +1021,13 @@ export default function AgentStudioPage({ userName = 'Sudeep', onBack }) {
     })();
   }, []);
 
+  // Reset textarea height when input is cleared after send
+  useEffect(() => {
+    if (!input && textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
+  }, [input]);
+
   // Clear-confirm auto-resets if the user doesn't follow through
   useEffect(() => {
     if (!clearArmed) return;

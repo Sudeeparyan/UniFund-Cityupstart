@@ -62,8 +62,6 @@ export const signup = (email, password, name) =>
 export const login = (email, password) =>
   request('POST', '/api/auth/login', { email, password });
 
-export const guestLogin = () => request('POST', '/api/auth/guest');
-
 // ── Users ─────────────────────────────────────────────────────────────────────
 export const getMe = () => request('GET', '/api/users/me');
 
@@ -185,6 +183,25 @@ export const runRunwaySimulate = async (monthlyIncome, expenses) => {
 // ── Agent Studio ──────────────────────────────────────────────────────────────
 export const runStudioPipeline = (task, jobDescription) =>
   request('POST', '/api/studio/run', { task, job_description: jobDescription });
+
+// ── Expert Council (multi-agent) ───────────────────────────────────────────────
+// Routes a question to the most relevant expert agents, runs them in parallel
+// on the cheap tier, and returns one fused answer + each expert's contribution
+// + agent_logs that drive the SpaceArena animation.
+export const runAgentCouncil = (query, k = 3) =>
+  request('POST', '/api/agent/council', { query, k });
+
+export const getExperts = () => request('GET', '/api/agent/experts');
+
+// Debate mode: ADVOCATE (optimist) vs SKEPTIC (red team) → ARIA judges.
+export const runAgentDebate = (query) =>
+  request('POST', '/api/agent/debate', { query });
+
+// MENTOR-MATCH: real network agents most similar to you.
+export const getMentors = (k = 3) => request('GET', `/api/agent/mentors?k=${k}`);
+
+// Featured human persona agents (seeded, real, matchable).
+export const getFeaturedNetwork = () => request('GET', '/api/agent/network');
 
 // ── Developer (unauthenticated login, then dev-token requests) ────────────────
 function getDevToken() {

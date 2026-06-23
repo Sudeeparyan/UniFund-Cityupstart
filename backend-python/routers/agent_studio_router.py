@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from auth import get_current_user
 from db import get_db
 from services.azure_openai import chat_complete
+from services import orchestrator
 
 router = APIRouter()
 
@@ -46,7 +47,7 @@ async def _scout_analyze_jd(jd: str) -> dict:
         '"level":"junior|mid|senior","industry":"industry"}\n\n'
         f"Job Description:\n{jd}"
     )
-    raw = await chat_complete([{"role": "user", "content": prompt}], temperature=0.2, max_tokens=500)
+    raw = await chat_complete([{"role": "user", "content": prompt}], temperature=0.2, max_tokens=500, mini=True)
     return _parse_json(raw, {
         "role": "Software Engineer", "company": "Unknown",
         "skills_required": [], "skills_preferred": [],
@@ -70,7 +71,7 @@ async def _lens_match_profile(knowledge: str, jd_data: dict) -> dict:
         '"summary_angle":"one sentence positioning strategy",'
         '"match_score":integer_0_to_100}'
     )
-    raw = await chat_complete([{"role": "user", "content": prompt}], temperature=0.3, max_tokens=600)
+    raw = await chat_complete([{"role": "user", "content": prompt}], temperature=0.3, max_tokens=600, mini=True)
     return _parse_json(raw, {
         "matching_skills": [], "missing_skills": [],
         "experiences_to_highlight": [], "summary_angle": "", "match_score": 65,
@@ -104,7 +105,7 @@ async def _resume_build(user_name: str, knowledge: str, jd_data: dict, match_dat
     })
 
 
-def _build_agent_logs(jd_data: dict, match_data: dict) -> list:
+def _build_agent_logs(jd_data: dict, match_data: dict, peer_count: int = 0) -> list:
     role = jd_data.get("role", "this role")
     company = jd_data.get("company", "the company")
     req_skills = jd_data.get("skills_required", [])
@@ -112,6 +113,9 @@ def _build_agent_logs(jd_data: dict, match_data: dict) -> list:
     missing = match_data.get("missing_skills", [])
     score = match_data.get("match_score", 70)
     ats_est = min(score + 15, 97)
+    peer_note = (f"Found {peer_count} network agents strong in these skills — "
+                 "borrowing their proven framing."
+                 if peer_count else "Drawing on network skill patterns.")
 
     return [
         {"from_agent": "ARIA", "to_agent": "SCOUT",
@@ -121,10 +125,10 @@ def _build_agent_logs(jd_data: dict, match_data: dict) -> list:
          "message": f"Parsed: {role} at {company}. {len(req_skills)} required skills extracted. Level: {jd_data.get('level', 'mid')}.",
          "delay_ms": 600},
         {"from_agent": "ARIA", "to_agent": "NEXUS",
-         "message": f"Research {company} — culture, tech stack, what interviewers care about.",
+         "message": f"Research {company} and find peer agents who've matched {role}.",
          "delay_ms": 1200},
         {"from_agent": "NEXUS", "to_agent": "ARIA",
-         "message": f"{company} values cross-functional ownership and measurable impact. Interviews typically include technical screen + culture fit. Recommend quantified bullets.",
+         "message": f"{peer_note} {company} values measurable impact — recommend quantified bullets.",
          "delay_ms": 2000},
         {"from_agent": "ARIA", "to_agent": "LENS",
          "message": f"Check candidate profile against {role} requirements. Identify gaps.",
@@ -168,10 +172,18 @@ async def run_studio_pipeline(
 
     # 3-step agent pipeline
     jd_data = await _scout_analyze_jd(jd)
+
+    # Free retrieval: real network agents strong in the required skills.
+    skill_query = f"{jd_data.get('role','')} {' '.join(jd_data.get('skills_required', []))}"
+    try:
+        peers = await orchestrator.route_peers(db, skill_query, current_user["id"], k=3)
+    except Exception:
+        peers = []
+
     match_data = await _lens_match_profile(knowledge, jd_data)
     resume_data = await _resume_build(user_name, knowledge, jd_data, match_data)
 
-    logs = _build_agent_logs(jd_data, match_data)
+    logs = _build_agent_logs(jd_data, match_data, peer_count=len(peers))
 
     # Log to llm_logs (counts as 3 LLM calls)
     now = datetime.now(timezone.utc).isoformat()
@@ -188,5 +200,6 @@ async def run_studio_pipeline(
         "match_analysis": match_data,
         "resume": resume_data,
         "agent_logs": logs,
+        "peers_consulted": len(peers),
         "user_name": user_name,
     }
